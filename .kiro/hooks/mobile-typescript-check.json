@@ -1,0 +1,13 @@
+{
+  "name": "Mobile TypeScript Check",
+  "version": "1.0.0",
+  "description": "Run TypeScript type checking after editing mobile app files",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["mobile/**/*.tsx", "mobile/**/*.ts"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd mobile/ios-app && npx tsc --noEmit --pretty"
+  }
+}

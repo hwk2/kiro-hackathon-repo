@@ -1,0 +1,12 @@
+{
+  "name": "Pre-Push Documentation Check",
+  "version": "1.0.0",
+  "description": "Manually triggered before git push. Audits all documentation for staleness: steering docs, hooks, coding standards, READMEs, specs, and directory structure.",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The user is about to push to git. Perform a full documentation audit before they push:\n\n1. **Steering docs**: Read .kiro/steering/project-overview.md, coding-standards.md, and mobile-development.md. Verify 'Current Focus', 'Repository Layout', screen flows, and conventions match the actual codebase.\n2. **Hooks**: Read all .kiro/hooks/*.json files. Verify file patterns still match the actual project structure. Remove hooks for deleted patterns.\n3. **READMEs**: Read mobile/README.md, desktop/README.md, ai_pipeline/README.md. Verify 'Current Status' checkboxes, 'Project Structure' trees, and setup instructions are accurate.\n4. **Specs**: Read .kiro/specs/room-vision-ai/tasks-member1-mobile.md, tasks-member2-desktop.md, tasks-member3-ai.md. Verify completed task checkboxes match what's actually implemented.\n5. **Directory structure**: List the actual directory trees for mobile/, desktop/, ai_pipeline/ and compare against what's documented in READMEs and steering docs.\n6. **Coding standards**: Check if any new patterns or libraries were introduced that should be documented.\n\nReport what's stale and fix it. If everything is current, confirm that docs are in sync."
+  }
+}

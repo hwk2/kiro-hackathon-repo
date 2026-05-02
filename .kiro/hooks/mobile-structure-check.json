@@ -1,0 +1,13 @@
+{
+  "name": "Mobile New File Guide",
+  "version": "1.0.0",
+  "description": "When a new file is created in the mobile directory, ensure it follows the project structure conventions",
+  "when": {
+    "type": "fileCreated",
+    "patterns": ["mobile/**/*.tsx", "mobile/**/*.ts"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new TypeScript/React file was created in the mobile project. Verify it follows conventions: screens go in src/screens/, shared components in src/components/, utilities in src/utils/. If it's a new screen, remind to add it to the Screen type union in App.tsx and update the mobile steering doc and README."
+  }
+}
