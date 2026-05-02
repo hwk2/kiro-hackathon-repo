@@ -1,0 +1,10 @@
+{
+  "ImageMetadata": {
+    "filename": "string",
+    "format": "jpeg | png | heic",
+    "width": "integer >= 480",
+    "height": "integer >= 480",
+    "captured_at": "ISO 8601 string",
+    "file_size_bytes": "integer > 0"
+  }
+}
