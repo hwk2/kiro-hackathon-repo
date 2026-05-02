@@ -8,9 +8,9 @@ The system is split into three independently developed subsystems:
 
 | Subsystem | Owner | Platform | Language/Framework |
 |-----------|-------|----------|--------------------|
-| **Mobile App** | Member 1 | Android (Kotlin) / iOS (Swift) | Kotlin Multiplatform or separate native apps |
-| **Desktop Visualization Engine** | Member 2 | Windows / macOS | Python + Qt (PySide6) with OpenGL/Vulkan for 3D |
-| **AI Pipeline** | Member 3 | Runs on desktop host | Python — exposes a local HTTP API on `localhost` |
+| **Mobile App** | Team Member 1 | Android (Kotlin) / iOS (Swift) | Kotlin Multiplatform or separate native apps |
+| **Desktop Visualization Engine** | Team Member 2 | Windows / macOS | Python + Qt (PySide6) with OpenGL/Vulkan for 3D |
+| **AI Pipeline** | Team Member 3 | Runs on desktop host | Python — exposes a local HTTP API on `localhost` |
 
 Communication between subsystems:
 
