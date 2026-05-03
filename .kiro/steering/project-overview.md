@@ -14,7 +14,7 @@ A privacy-first, open-source computer vision app that captures room images on mo
 - **Member 4 (You)**: 3D Room Visualizer (Unity 2022 LTS, C#) — interactive 3D game engine for room design, furniture placement, surface/lighting customisation, and BlockModel import from the AI Pipeline
 
 ## Current Focus
-Unity 3D Room Visualizer (Member 4) — ALL required tasks complete. Tasks 1, 2.1, 3.1, 4.1, 5, 6.1, 7.1, 8.1, 9.1, 10, 11.1, 12.1, 12.4, 13.1, 14.1, and 15 (final checkpoint) are done. All 12 subsystems implemented and wired: `RoomController`, `CollisionSystem`, `ObjectPlacer`, `CameraController`, `SurfaceManager`, `LightingManager`, `AssetLoader`, `SceneSerializer`, `UIBridge`, `RoomVisualizerBootstrapper`, `BlockModelImporter`, `HttpListenerService`. Test fakes and EditMode tests created. Project compiles cleanly in Unity 6000.3.1f1.
+Unity 3D Room Visualizer (Member 4) — Polishing phase in progress (Tasks 16–24). Core tasks 1–15 complete. Now implementing: `PlacementGridManager` (Task 16, done), `PlaceableObject` component (Task 17), extended `ObjectPlacer` with grid snapping and green/red preview (Task 18), isometric camera with 4-step rotation (Task 19), `WallVisibilityManager` (Task 20), `ObjectPalette` UI (Task 21), 13 starter prefabs (Task 22), extended `SceneSerializer` v2.0 (Task 23), and bootstrapper wiring (Task 24).
 
 Member 1's mobile app is also active. Using Expo (React Native) with TypeScript for iOS-first development.
 

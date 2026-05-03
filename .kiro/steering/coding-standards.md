@@ -11,7 +11,6 @@ inclusion: auto
 - Use `expo-image-picker` for camera/gallery, not raw native APIs
 - Validate all images: minimum 480×480, JPEG/PNG/HEIC only
 - All state management via React hooks (useState, useContext) — no Redux unless complexity demands it
-- Escape/sanitize any user-facing strings
 
 ## Desktop App (Python / PySide6)
 - Use type hints on all function signatures
