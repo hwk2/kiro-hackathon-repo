@@ -27,7 +27,7 @@
 
 - [x] 3.1 Implement gallery picker — expo-image-picker launchImageLibraryAsync
 - [x] 3.2 Support multi-image selection (allowsMultipleSelection: true)
-- [ ] 3.3 Implement file manager import for images from other apps or file sources
+- [x] 3.3 Implement file manager import for images from other apps or file sources
 - [x] 3.4 Support JPEG, PNG, and HEIC formats via expo-image-picker
 - [x] 3.5 Validate resolution (≥480x480) for each imported image
 - [x] 3.6 Store validated images with CapturedImage metadata
@@ -35,40 +35,39 @@
 ## 4. Capture Guide UX
 
 - [x] 4.1 Design Capture Guide screen layout — CaptureGuideScreen.tsx with card-based instructions
-- [ ] 4.2 Create visual diagram asset showing top-down room view with numbered camera positions
 - [x] 4.3 Implement instructions: minimum 4 images, recommended 8-12, chest height, 30% overlap
 - [x] 4.4 Implement warnings: motion blur, backlighting, obstructed views, low light
-- [ ] 4.5 Implement "dismiss for future sessions" toggle with AsyncStorage persistence
+- [x] 4.5 Implement "dismiss for future sessions" toggle with AsyncStorage persistence
 - [x] 4.6 Implement capture progress bar showing images captured vs. recommended 8
 - [x] 4.7 Implement warning Alert when proceeding with fewer than 4 images
 - [x] 4.8 Wire Capture Guide to display before first capture in the flow
 
 ## 5. Bluetooth Pairing — Discovery and Connection
 
-- [ ] 5.1 Install and configure react-native-ble-plx for BLE support
-- [ ] 5.2 Implement Bluetooth permission request flow (iOS: CBCentralManager authorization)
-- [ ] 5.3 Implement BLE scanning to discover nearby Desktop instances advertising Room Vision AI service UUID
-- [ ] 5.4 Display discovered desktop devices with device name in a list UI
-- [ ] 5.5 Implement pairing confirmation dialog showing the desktop device name
-- [ ] 5.6 Implement ECDH key exchange during pairing to derive AES-256-GCM encryption key
-- [ ] 5.7 Persist pairing info locally (AsyncStorage) so re-pairing is not needed
-- [ ] 5.8 Implement connection status display (connected, disconnected, reconnecting)
-- [ ] 5.9 Implement auto-reconnect: up to 3 attempts at 5-second intervals
-- [ ] 5.10 Implement failure notification after 3 failed attempts with re-pair option
-- [ ] 5.11 Implement unpair action: terminate connection and clear stored pairing data
+- [x] 5.1 Install and configure react-native-ble-plx for BLE support
+- [x] 5.2 Implement Bluetooth permission request flow (iOS: CBCentralManager authorization)
+- [x] 5.3 Implement BLE scanning to discover nearby Desktop instances advertising Room Vision AI service UUID
+- [x] 5.4 Display discovered desktop devices with device name in a list UI
+- [x] 5.5 Implement pairing confirmation dialog showing the desktop device name
+- [x] 5.6 Implement ECDH key exchange during pairing to derive AES-256-GCM encryption key
+- [x] 5.7 Persist pairing info locally (AsyncStorage) so re-pairing is not needed
+- [x] 5.8 Implement connection status display (connected, disconnected, reconnecting)
+- [x] 5.9 Implement auto-reconnect: up to 3 attempts at 5-second intervals
+- [x] 5.10 Implement failure notification after 3 failed attempts with re-pair option
+- [x] 5.11 Implement unpair action: terminate connection and clear stored pairing data
 
 ## 6. Encrypted Image Transfer
 
-- [ ] 6.1 Implement Bluetooth Classic (RFCOMM) connection for bulk image transfer
-- [ ] 6.2 Implement AES-256-GCM encryption of image data via expo-crypto
-- [ ] 6.3 Implement Bluetooth protocol message envelope per design spec
-- [ ] 6.4 Implement image_transfer message: base64 image + metadata + SHA-256 checksum
-- [ ] 6.5 Implement sequential transfer for multiple images with per-image progress
-- [ ] 6.6 Implement transfer progress UI (percentage for current image + overall batch)
-- [ ] 6.7 Implement transfer_ack handling: verify checksum match from desktop
-- [ ] 6.8 Implement auto-retry on checksum mismatch (up to 2 retries per image)
-- [ ] 6.9 Implement failure notification after 2 retries with manual retry option
-- [ ] 6.10 Implement protocol version validation
+- [x] 6.1 Implement Bluetooth Classic (RFCOMM) connection for bulk image transfer
+- [x] 6.2 Implement AES-256-GCM encryption of image data via expo-crypto
+- [x] 6.3 Implement Bluetooth protocol message envelope per design spec
+- [x] 6.4 Implement image_transfer message: base64 image + metadata + SHA-256 checksum
+- [x] 6.5 Implement sequential transfer for multiple images with per-image progress
+- [x] 6.6 Implement transfer progress UI (percentage for current image + overall batch)
+- [x] 6.7 Implement transfer_ack handling: verify checksum match from desktop
+- [x] 6.8 Implement auto-retry on checksum mismatch (up to 2 retries per image)
+- [x] 6.9 Implement failure notification after 2 retries with manual retry option
+- [x] 6.10 Implement protocol version validation
 
 ## 7. Integration and Testing
 

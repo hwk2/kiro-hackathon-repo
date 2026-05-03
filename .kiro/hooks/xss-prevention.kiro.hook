@@ -2,13 +2,12 @@
   "enabled": true,
   "name": "Input Sanitization Check",
   "version": "1.0.0",
-  "description": "Check that user-facing content is properly handled when writing UI code",
+  "description": "After a spec task completes, review any modified UI components for unsafe user-data interpolation",
   "when": {
-    "type": "preToolUse",
-    "toolTypes": ["write"]
+    "type": "postTaskExecution"
   },
   "then": {
     "type": "askAgent",
-    "prompt": "If this write modifies a UI component (React Native screen, HTML, or template), verify that any user-provided data (filenames, text input, metadata) is not directly interpolated into dangerous contexts. In React Native this is generally safe, but watch for dangerouslySetInnerHTML or eval patterns."
+    "prompt": "The task just completed may have modified UI components. Review all files changed during this task. For any React Native screens, HTML templates, or UI components, verify that user-provided data (filenames, text input, metadata) is not directly interpolated into dangerous contexts. Check for dangerouslySetInnerHTML, eval patterns, or unsanitized string interpolation. Report any issues found, or confirm the changes are safe."
   }
 }

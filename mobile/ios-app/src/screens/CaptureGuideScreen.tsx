@@ -1,5 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const CAPTURE_GUIDE_DISMISSED_KEY = 'capture_guide_dismissed';
 
 interface Props {
   onContinue: () => void;
@@ -7,6 +10,19 @@ interface Props {
 }
 
 export default function CaptureGuideScreen({ onContinue, onBack }: Props) {
+  const [dismissForFuture, setDismissForFuture] = useState(false);
+
+  const handleContinue = async () => {
+    if (dismissForFuture) {
+      try {
+        await AsyncStorage.setItem(CAPTURE_GUIDE_DISMISSED_KEY, 'true');
+      } catch {
+        // Storage write failed — continue anyway, guide will show next time
+      }
+    }
+    onContinue();
+  };
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>📋 Capture Guide</Text>
@@ -63,7 +79,19 @@ export default function CaptureGuideScreen({ onContinue, onBack }: Props) {
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.primaryBtn} onPress={onContinue}>
+      <View style={styles.dismissRow}>
+        <Text style={styles.dismissText}>Don't show this guide again</Text>
+        <Switch
+          value={dismissForFuture}
+          onValueChange={setDismissForFuture}
+          trackColor={{ false: '#333', true: '#7c8aff' }}
+          thumbColor={dismissForFuture ? '#fff' : '#888'}
+          accessibilityLabel="Don't show capture guide again"
+          accessibilityRole="switch"
+        />
+      </View>
+
+      <TouchableOpacity style={styles.primaryBtn} onPress={handleContinue}>
         <Text style={styles.primaryBtnText}>Got it — Start Capturing</Text>
       </TouchableOpacity>
 
@@ -83,6 +111,8 @@ const styles = StyleSheet.create({
   cardWarning: { backgroundColor: '#1a1510', borderWidth: 1, borderColor: '#443300', borderRadius: 10, padding: 16, marginBottom: 12 },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#e0e0e8', marginBottom: 6 },
   cardBody: { fontSize: 14, color: '#aaa', lineHeight: 21 },
+  dismissRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#161620', borderWidth: 1, borderColor: '#222', borderRadius: 10, padding: 16, marginBottom: 16, marginTop: 4 },
+  dismissText: { fontSize: 14, color: '#aaa', flex: 1, marginRight: 12 },
   primaryBtn: { backgroundColor: '#7c8aff', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 8, marginBottom: 8 },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   backBtn: { alignItems: 'center', paddingVertical: 12 },

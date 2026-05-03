@@ -12,9 +12,24 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Room Vision AI uses Bluetooth to discover and pair with your desktop computer for private image transfer.",
+          "bluetoothPeripheralPermission": "Room Vision AI uses Bluetooth to communicate with your paired desktop computer."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hknudson.roomvisionai"
+      "bundleIdentifier": "com.hknudson.roomvisionai",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Room Vision AI uses Bluetooth to discover and pair with your desktop computer for private image transfer.",
+        "NSBluetoothPeripheralUsageDescription": "Room Vision AI uses Bluetooth to communicate with your paired desktop computer."
+      }
     },
     "android": {
       "adaptiveIcon": {
