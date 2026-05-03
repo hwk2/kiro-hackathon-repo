@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { CapturedImage } from '../../App';
 
 const MIN_RESOLUTION = 480;
@@ -67,6 +69,84 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
     processResult(result);
   };
 
+  const getImageDimensions = (uri: string): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      Image.getSize(
+        uri,
+        (width, height) => resolve({ width, height }),
+        (error) => reject(error)
+      );
+    });
+  };
+
+  const pickFromFiles = async () => {
+    const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: SUPPORTED_MIME_TYPES,
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+      for (const asset of result.assets) {
+        // Validate file format by extension as a fallback
+        const ext = (asset.name || '').split('.').pop()?.toLowerCase();
+        const validExtensions = ['jpg', 'jpeg', 'png', 'heic', 'heif'];
+        if (ext && !validExtensions.includes(ext)) {
+          Alert.alert('Unsupported Format', `"${asset.name}" is not a supported image format. Use JPEG, PNG, or HEIC.`);
+          continue;
+        }
+
+        // Get image dimensions since DocumentPicker doesn't provide them
+        let width: number;
+        let height: number;
+        try {
+          const dims = await getImageDimensions(asset.uri);
+          width = dims.width;
+          height = dims.height;
+        } catch {
+          Alert.alert('Cannot Read Image', `Unable to read dimensions for "${asset.name}". The file may be corrupted.`);
+          continue;
+        }
+
+        // Validate minimum resolution
+        if (width < MIN_RESOLUTION || height < MIN_RESOLUTION) {
+          Alert.alert(
+            'Image Too Small',
+            `Minimum resolution is ${MIN_RESOLUTION}×${MIN_RESOLUTION}px. "${asset.name}" is ${width}×${height}px.`
+          );
+          continue;
+        }
+
+        // Get file info for size
+        let fileSize: number | undefined;
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+          if (fileInfo.exists && 'size' in fileInfo) {
+            fileSize = fileInfo.size;
+          }
+        } catch {
+          // File size is optional metadata — continue without it
+        }
+
+        const img: CapturedImage = {
+          uri: asset.uri,
+          width,
+          height,
+          fileName: asset.name || `file_import_${Date.now()}.jpg`,
+          fileSize: fileSize ?? asset.size,
+          capturedAt: new Date().toISOString(),
+        };
+        onAddImage(img);
+      }
+    } catch {
+      Alert.alert('Import Failed', 'Could not open the file picker. Please try again.');
+    }
+  };
+
   const handleDone = () => {
     if (images.length < MIN_IMAGES) {
       Alert.alert(
@@ -119,6 +199,11 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
         <TouchableOpacity style={styles.captureBtn} onPress={pickFromGallery}>
           <Text style={styles.captureBtnEmoji}>🖼️</Text>
           <Text style={styles.captureBtnText}>From Gallery</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.captureBtn} onPress={pickFromFiles}>
+          <Text style={styles.captureBtnEmoji}>📁</Text>
+          <Text style={styles.captureBtnText}>From Files</Text>
         </TouchableOpacity>
       </View>
 
