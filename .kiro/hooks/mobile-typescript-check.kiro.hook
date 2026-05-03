@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "Mobile TypeScript Check",
   "version": "1.0.0",
   "description": "Run TypeScript type checking after editing mobile app files",

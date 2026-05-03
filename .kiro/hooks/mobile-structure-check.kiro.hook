@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "Mobile New File Guide",
   "version": "1.0.0",
   "description": "When a new file is created in the mobile directory, ensure it follows the project structure conventions",

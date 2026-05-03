@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "name": "Full Documentation Sync",
   "version": "1.0.0",
   "description": "After any spec task is completed, verify and update all project documentation: steering docs, hooks, coding standards, READMEs, and directory structure references. Covers all three member task files.",

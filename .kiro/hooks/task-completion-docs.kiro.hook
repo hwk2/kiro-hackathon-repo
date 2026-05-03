@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Task Completion Documentation",
+  "description": "After each spec task completes, generates a markdown documentation file in the /documentation directory that captures the task prompt, step-by-step process, and reasoning behind implementation decisions",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A spec task has just been completed. Create a new markdown documentation file in the `documentation/` directory (create the directory if it doesn't exist) that captures:\n\n1. **Task Prompt** - The original task description/prompt that was executed\n2. **Step-by-Step Process** - A detailed breakdown of every step taken to complete the task, in order\n3. **Implementation Choices & Reasoning** - For each significant decision made (architecture, libraries, patterns, file structure, algorithms, etc.), explain:\n   - What choice was made\n   - Why it was chosen over alternatives\n   - Why it was the most optimal solution given the project context\n4. **Summary** - A brief summary of what was accomplished\n\nName the file using the format: `documentation/YYYY-MM-DD_<short-task-slug>.md` where the date is today's date and the slug is a kebab-case summary of the task (e.g., `2026-05-02_add-bluetooth-server.md`).\n\nBe thorough and specific — this documentation should serve as a clear record of what was done and why, useful for future developers or for auditing decisions."
+  }
+}
