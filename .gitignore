@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Unity generated — do not commit
+unity/RoomVisualizer/[Ll]ibrary/
+unity/RoomVisualizer/[Tt]emp/
+unity/RoomVisualizer/[Oo]bj/
+unity/RoomVisualizer/[Bb]uild/
+unity/RoomVisualizer/[Bb]uilds/
+unity/RoomVisualizer/[Ll]ogs/
+unity/RoomVisualizer/[Uu]ser[Ss]ettings/
+unity/RoomVisualizer/*.csproj
+unity/RoomVisualizer/*.sln
+unity/RoomVisualizer/*.slnx
+unity/RoomVisualizer/.vs/
+unity/RoomVisualizer/Assembly-CSharp*.csproj
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+
+# Env files
+.env
+.env.local
