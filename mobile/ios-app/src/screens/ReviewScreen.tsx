@@ -8,9 +8,19 @@ interface Props {
   onClearAll: () => void;
   onAddMore: () => void;
   onBack: () => void;
+  isPaired?: boolean;
+  onPairDesktop?: () => void;
 }
 
-export default function ReviewScreen({ images, onRemoveImage, onClearAll, onAddMore, onBack }: Props) {
+export default function ReviewScreen({
+  images,
+  onRemoveImage,
+  onClearAll,
+  onAddMore,
+  onBack,
+  isPaired = false,
+  onPairDesktop,
+}: Props) {
 
   const handleClearAll = () => {
     Alert.alert('Clear All', 'Remove all captured images?', [
@@ -20,11 +30,25 @@ export default function ReviewScreen({ images, onRemoveImage, onClearAll, onAddM
   };
 
   const handleTransfer = () => {
-    Alert.alert(
-      'Transfer',
-      `Ready to send ${images.length} image(s) to your desktop via Bluetooth.\n\nBluetooth transfer will be available in the next update.`,
-      [{ text: 'OK' }]
-    );
+    if (isPaired) {
+      Alert.alert(
+        'Transfer',
+        `Ready to send ${images.length} image(s) to your desktop via Bluetooth.\n\nBluetooth transfer will be available in the next update.`,
+        [{ text: 'OK' }],
+      );
+    } else {
+      Alert.alert(
+        'No Desktop Connected',
+        'Would you like to pair with a desktop now?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Pair Desktop',
+            onPress: () => onPairDesktop?.(),
+          },
+        ],
+      );
+    }
   };
 
   if (images.length === 0) {

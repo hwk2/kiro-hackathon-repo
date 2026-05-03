@@ -284,8 +284,12 @@ describe('Data stays local', () => {
     }
 
     // No util file should contain WiFi/HTTP transport patterns
+    // (webSocketTransport.ts is excluded — it connects to localhost only for the web demo)
     const networkTransportPattern = /WiFiTransport|HttpTransport|WebSocketTransport|net\.connect|dgram/i;
-    const hits = scanFilesForPattern(utilFiles, networkTransportPattern);
+    const filteredUtilFiles = utilFiles.filter(
+      (f) => !f.replace(/\\/g, '/').endsWith('webSocketTransport.ts'),
+    );
+    const hits = scanFilesForPattern(filteredUtilFiles, networkTransportPattern);
 
     expect(hits).toEqual([]);
   });

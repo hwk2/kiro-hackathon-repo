@@ -100,6 +100,8 @@ export default function App() {
           onClearAll={clearImages}
           onAddMore={() => setScreen('capture')}
           onBack={() => setScreen('home')}
+          isPaired={selectedDevice !== null}
+          onPairDesktop={() => setScreen('pairing')}
         />
       )}
       {screen === 'pairing' && (
