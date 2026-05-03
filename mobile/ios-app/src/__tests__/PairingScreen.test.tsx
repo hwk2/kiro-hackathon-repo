@@ -5,6 +5,15 @@ import PairingScreen from '../screens/PairingScreen';
 import type { DiscoveredDevice } from '../utils/bleScanner';
 
 // ---------------------------------------------------------------------------
+// Mock platformDetect — default to native (BLE) mode
+// ---------------------------------------------------------------------------
+
+jest.mock('../utils/platformDetect', () => ({
+  isWeb: jest.fn(() => false),
+  isNative: jest.fn(() => true),
+}));
+
+// ---------------------------------------------------------------------------
 // Mock react-native-ble-plx
 // ---------------------------------------------------------------------------
 
@@ -69,7 +78,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('PairingScreen', () => {
+describe('PairingScreen (native mode)', () => {
   it('starts scanning on mount', async () => {
     render(
       <PairingScreen onDeviceSelected={jest.fn()} onBack={jest.fn()} />,
