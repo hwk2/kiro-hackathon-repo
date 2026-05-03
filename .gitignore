@@ -1,3 +1,47 @@
+# Environment files (may contain API keys, passwords, secrets)
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/
+*.pyc
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Expo
+.expo/
+
+# Sensitive files
+*.pem
+*.key
+*.p12
+*.p8
+*.jks
+*.mobileprovision
+*.keystore
 # macOS
 .DS_Store
 .AppleDouble
@@ -16,18 +60,3 @@ unity/RoomVisualizer/*.sln
 unity/RoomVisualizer/*.slnx
 unity/RoomVisualizer/.vs/
 unity/RoomVisualizer/Assembly-CSharp*.csproj
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-*.egg-info/
-
-# Node / Expo
-node_modules/
-.expo/
-dist/
-
-# Env files
-.env
-.env.local

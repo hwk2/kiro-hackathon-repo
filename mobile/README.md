@@ -76,24 +76,16 @@ mobile/ios-app/
 | Recommended images | 8-12 (walls + ceiling + floor + corners) |
 | Overlap | ~30% between adjacent images |
 
-## Building a Standalone App (No Expo Go)
+## Running on Web
 
-When ready to distribute outside of Expo Go:
+Since native device builds require an Apple Developer account, the web preview is the primary development workflow:
 
 ```bash
-# Install EAS CLI
-npm install -g eas-cli
-
-# Log in to Expo account (free)
-eas login
-
-# Build for iOS (cloud build, no Mac needed)
-eas build --platform ios --profile preview
-
-# This generates an .ipa file you can install via TestFlight
+cd mobile/ios-app
+npx expo start --web
 ```
 
-**Note**: For App Store distribution, you'll need an Apple Developer account ($99/year). For testing on your own devices, the free tier with Expo Go is sufficient.
+This opens the app in your browser with hot reload. Camera and gallery features are native-only, but all UI, navigation, and state management work normally.
 
 ## Privacy
 
