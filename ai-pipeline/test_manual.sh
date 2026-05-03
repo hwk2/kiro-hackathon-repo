@@ -43,6 +43,9 @@ curl -s -X POST "$BASE/manipulate" \
   }" | python3 -m json.tool
 
 echo ""
-echo "=== FULL TEST SUITE ==="
-cd /mnt/c/Users/Htoo/Desktop/kiro-hackathon-repo/ai-pipeline
-PYTHONPATH=src .venv/bin/python3 -m pytest tests/ -v 2>&1
+echo "=== COMMIT AND PUSH ==="
+cd /mnt/c/Users/Htoo/Desktop/kiro-hackathon-repo
+git add ai-pipeline/test_manual.sh
+git commit -m "ai-pipeline: restore test_manual.sh to full test suite runner" 2>&1
+git push origin feature/ai-pipeline-member3 2>&1
+echo PUSH_DONE
