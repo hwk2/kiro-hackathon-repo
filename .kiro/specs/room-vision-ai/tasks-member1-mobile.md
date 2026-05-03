@@ -76,6 +76,6 @@
 - [x] 7.3 Test rejection of images below 480x480
 - [x] 7.4 Test Bluetooth pairing with Windows and macOS desktop
 - [x] 7.5 Test auto-reconnect on Bluetooth connection loss
-- [~] 7.6 Test transfer of 8-12 images sequentially
+- [x] 7.6 Test transfer of 8-12 images sequentially
 - [~] 7.7 Test Capture Guide dismissal persistence across app restarts
 - [~] 7.8 Verify no data stored outside local device (no network calls, no cloud)
