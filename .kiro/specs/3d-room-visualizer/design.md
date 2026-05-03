@@ -25,7 +25,7 @@ Mobile App  →  [Bluetooth]  →  Desktop Visualization Engine (Python, port 83
 
 **Key design decisions:**
 
-- **Unity 2022 LTS** as the target engine version for stability and long-term support.
+- **Unity 6 (6000.3.1f1)** as the target engine version.
 - **`com.unity.cloud.gltfast` (v6.x)** as the official Unity-supported package for runtime glTF/GLB import, using async/await patterns.
 - **ScriptableObject-based configuration** for room and lighting parameters to support easy serialisation and editor tooling.
 - **JSON serialisation via `Newtonsoft.Json` (Json.NET for Unity)** for scene save/load and BlockModel parsing, providing human-readable files and robust round-trip fidelity.

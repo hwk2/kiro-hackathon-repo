@@ -7,9 +7,9 @@ Implement the Unity (C#) game-engine mechanics for the 3D Room Visualizer in dis
 ## Tasks
 
 - [ ] 1. Project setup and core interfaces
-  - Create the Unity 2022 LTS project folder structure under `Assets/RoomVisualizer/`
-  - Add `com.unity.cloud.gltfast` (v6.x) via Package Manager
-  - Add `Newtonsoft.Json` (Json.NET for Unity) via Package Manager
+  - Create the Unity 6 (6000.3.1f1) project folder structure under `Assets/RoomVisualizer/`
+  - Add `com.unity.cloud.gltfast` (v6.x) via Package Manager — already added to `Packages/manifest.json`
+  - Add `Newtonsoft.Json` (Json.NET for Unity) via Package Manager — already added to `Packages/manifest.json`
   - Add `FsCheck` v3.x and `FsCheck.NUnit` as `.dll` plugins under `Assets/Plugins/`
   - Create `Tests.EditMode` and `Tests.PlayMode` Unity Test Framework assemblies with their `.asmdef` files
   - Define all interfaces: `IRoomController`, `IAssetLoader`, `IObjectPlacer`, `ICameraController`, `ISurfaceManager`, `ILightingManager`, `ISceneSerializer`, `ICollisionSystem`, `IBlockModelImporter`
