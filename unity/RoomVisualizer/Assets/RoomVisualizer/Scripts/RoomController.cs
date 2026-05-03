@@ -136,8 +136,10 @@ namespace RoomVisualizer
                 surface.transform.SetParent(transform, worldPositionStays: false);
 
                 // Remove the collider — room surfaces must not block Physics.OverlapBox.
+                // Exception: the Floor keeps its collider so it can be clicked to show
+                // the resize handles (GameInputHandler detects floor clicks via raycast).
                 Collider col = surface.GetComponent<Collider>();
-                if (col != null)
+                if (col != null && id != SurfaceId.Floor)
                     Destroy(col);
 
                 // Apply a distinct default color per surface so the room is immediately

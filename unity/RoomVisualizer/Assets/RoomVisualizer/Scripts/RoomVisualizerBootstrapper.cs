@@ -51,6 +51,7 @@ namespace RoomVisualizer
         public WallVisibilityManager WallVisibilityManager { get; private set; }
         public ObjectPalette ObjectPalette { get; private set; }
         public BlockModelImporter BlockModelImporter { get; private set; }
+        public RoomResizer RoomResizer { get; private set; }
 
         private void Awake()
         {
@@ -85,6 +86,9 @@ namespace RoomVisualizer
 
             BlockModelImporter = ResolveOrCreate<BlockModelImporter>(
                 _existingBlockModelImporter, root, "BlockModelImporter");
+
+            // RoomResizer — drag handles for resizing the room floor in X and Z.
+            RoomResizer = ResolveOrCreate<RoomResizer>(null, root, "RoomResizer");
 
             UIBridge = ResolveOrCreate<UIBridge>(_existingUIBridge, root, "UIBridge");
 

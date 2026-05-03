@@ -47,6 +47,17 @@ namespace RoomVisualizer
         // ── ICollisionSystem implementation ──────────────────────────────────
 
         /// <summary>
+        /// Returns the room bounding volume from the <see cref="IRoomController"/>.
+        /// Used by <see cref="ObjectPlacer"/> for direct world-space bounds checks.
+        /// </summary>
+        public Bounds GetRoomBounds()
+        {
+            if (_roomController == null)
+                return new Bounds(Vector3.zero, Vector3.one * 50f);
+            return _roomController.GetRoomBounds();
+        }
+
+        /// <summary>
         /// Returns <c>true</c> if placing an object with <paramref name="objectBounds"/>
         /// at <paramref name="proposedPosition"/> would overlap any existing collider in the scene.
         /// </summary>
@@ -57,20 +68,31 @@ namespace RoomVisualizer
         /// </remarks>
         public bool WouldCollide(Bounds objectBounds, Vector3 proposedPosition)
         {
-            // Compute the world-space centre of the object at the proposed position.
-            // objectBounds.center is the local offset from the object's pivot; adding
-            // proposedPosition gives the world-space centre.
             Vector3 worldCenter = proposedPosition + objectBounds.center;
             Vector3 halfExtents = objectBounds.extents;
 
-            // Use the identity rotation — objects are axis-aligned by default.
-            // A non-zero rotation could be passed in if needed in future.
             Collider[] overlaps = Physics.OverlapBox(
                 worldCenter,
                 halfExtents,
                 Quaternion.identity);
 
-            return overlaps.Length > 0;
+            // Filter out colliders that belong to room surfaces or resize handles —
+            // these are scene infrastructure, not placed objects.
+            foreach (Collider col in overlaps)
+            {
+                if (col == null) continue;
+
+                // Skip resize handles.
+                if (col.GetComponent<RoomResizeHandle>() != null) continue;
+
+                // Skip room surface planes (they are children of a RoomController).
+                if (col.GetComponentInParent<RoomController>() != null) continue;
+
+                // This is a real placed-object collider.
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -27,19 +27,24 @@ namespace RoomVisualizer
         // ── Cached subsystem references ──────────────────────────────────────
 
         private ObjectPlacer _objectPlacer;
+        private RoomResizer  _roomResizer;
+        private RoomController _roomController;
         private RoomVisualizerBootstrapper _bootstrapper;
 
         // ── State ────────────────────────────────────────────────────────────
 
         private bool _isPlacing;
         private int  _selectedPrefabIndex = -1;
+        private bool _floorSelected;
 
         // ── Unity lifecycle ──────────────────────────────────────────────────
 
         private void Start()
         {
-            _bootstrapper = GetComponent<RoomVisualizerBootstrapper>();
-            _objectPlacer = _bootstrapper.ObjectPlacer;
+            _bootstrapper   = GetComponent<RoomVisualizerBootstrapper>();
+            _objectPlacer   = _bootstrapper.ObjectPlacer;
+            _roomResizer    = _bootstrapper.RoomResizer;
+            _roomController = _bootstrapper.RoomController;
             PrintControls();
         }
 
@@ -47,6 +52,7 @@ namespace RoomVisualizer
         {
             HandlePlacementInput();
             HandleSelectionInput();
+            HandleFloorSelection();
 
             if (Input.GetKeyDown(KeyCode.F1))
                 PrintControls();
@@ -111,6 +117,7 @@ namespace RoomVisualizer
                 _objectPlacer.CancelPlacement();
                 _isPlacing = false;
                 _selectedPrefabIndex = -1;
+                DeselectFloor();
                 Debug.Log("[Input] Placement cancelled.");
             }
         }
@@ -174,7 +181,52 @@ namespace RoomVisualizer
 
             // Escape — deselect
             if (Input.GetKeyDown(KeyCode.Escape))
+            {
                 _objectPlacer.DeselectCurrent();
+                DeselectFloor();
+            }
+        }
+
+        // ── Floor selection / resize handles ─────────────────────────────────
+
+        private void HandleFloorSelection()
+        {
+            if (_roomResizer == null || _isPlacing) return;
+            if (!Input.GetMouseButtonDown(0) || Camera.main == null) return;
+
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (!Physics.Raycast(ray, out RaycastHit hit)) return;
+
+            // Check if the hit object is the Floor surface.
+            GameObject hitGO = hit.collider.gameObject;
+            bool clickedFloor = _roomController != null &&
+                                hitGO == _roomController.GetSurface(SurfaceId.Floor);
+
+            // Also treat clicking a resize handle as keeping the floor selected.
+            bool clickedHandle = hitGO.GetComponent<RoomResizeHandle>() != null;
+
+            if (clickedFloor)
+            {
+                SelectFloor();
+            }
+            else if (!clickedHandle)
+            {
+                DeselectFloor();
+            }
+        }
+
+        private void SelectFloor()
+        {
+            if (_floorSelected) return;
+            _floorSelected = true;
+            _roomResizer?.ShowHandles();
+        }
+
+        private void DeselectFloor()
+        {
+            if (!_floorSelected) return;
+            _floorSelected = false;
+            _roomResizer?.HideHandles();
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────

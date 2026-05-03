@@ -40,26 +40,26 @@ namespace RoomVisualizer.Editor
             // ── New empty scene ───────────────────────────────────────────────
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            // ── Lighting — warm cozy ambience ────────────────────────────────
-            // Soft warm key light from upper-left, like late afternoon sun through a window
+            // ── Lighting — neutral daylight ───────────────────────────────────
+            // Clean white key light from upper-left
             var lightGo = new GameObject("Key Light");
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.color = new Color(1.0f, 0.88f, 0.65f);   // warm amber
-            light.intensity = 0.8f;
+            light.color = new Color(0.95f, 0.95f, 1.0f);   // near-white with slight cool tint
+            light.intensity = 1.0f;
             lightGo.transform.rotation = Quaternion.Euler(40f, -45f, 0f);
 
-            // Warm fill light from the opposite side — softens shadows
+            // Soft cool fill from the opposite side
             var fillGo = new GameObject("Fill Light");
             var fill = fillGo.AddComponent<Light>();
             fill.type = LightType.Directional;
-            fill.color = new Color(0.85f, 0.75f, 0.95f);   // cool lavender fill
-            fill.intensity = 0.25f;
+            fill.color = new Color(0.75f, 0.82f, 0.95f);   // cool blue-grey fill
+            fill.intensity = 0.35f;
             fillGo.transform.rotation = Quaternion.Euler(20f, 135f, 0f);
 
-            // Warm amber ambient — makes the whole room feel lit from within
+            // Neutral grey ambient — even, clean illumination
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.55f, 0.42f, 0.28f);
+            RenderSettings.ambientLight = new Color(0.38f, 0.40f, 0.44f);
             RenderSettings.ambientIntensity = 1f;
 
             // ── Bootstrap + input ─────────────────────────────────────────────
@@ -153,10 +153,12 @@ namespace RoomVisualizer.Editor
                 "Press Play (▶) to start.\n\n" +
                 "Controls:\n" +
                 "  1-9            — place prefab by slot\n" +
+                "  R (placing)    — rotate preview 15°\n" +
                 "  Left-click     — confirm placement / select object\n" +
-                "  R              — rotate selected object 15°\n" +
+                "  R (selected)   — rotate selected object 15°\n" +
                 "  Delete         — remove selected object\n" +
                 "  Escape         — cancel / deselect\n" +
+                "  [ / ]          — decrease / increase room depth\n" +
                 "  F1             — full controls list",
                 "OK");
         }

@@ -336,14 +336,24 @@ namespace RoomVisualizer
             }
 
             // ── 4. Room-bounds check ──────────────────────────────────────────
-            Bounds bounds = ComputeLocalBounds(_previewObject);
-            if (_collisionSystem != null && !_collisionSystem.IsWithinRoomBounds(bounds, placementPosition))
+            // Use world-space bounds of the preview (already positioned at placementPosition)
+            // rather than local bounds + position offset, which would double-count the Y lift.
+            if (_collisionSystem != null)
             {
-                return PlacementResult.OutOfBounds;
+                // Temporarily move the preview to the placement position so world bounds are accurate.
+                Vector3 prevPos = _previewObject.transform.position;
+                _previewObject.transform.position = placementPosition;
+                Bounds worldBounds = ComputeWorldBounds(_previewObject);
+                _previewObject.transform.position = prevPos;
+
+                Bounds roomBounds = _collisionSystem.GetRoomBounds();
+                bool inBounds = roomBounds.Contains(worldBounds.min) && roomBounds.Contains(worldBounds.max);
+                if (!inBounds)
+                    return PlacementResult.OutOfBounds;
             }
 
             // ── 5. Collision check with existing objects (Req 19.4) ───────────
-            if (_collisionSystem != null && _collisionSystem.WouldCollide(bounds, placementPosition))
+            if (_collisionSystem != null && _collisionSystem.WouldCollide(ComputeLocalBounds(_previewObject), placementPosition))
             {
                 IsColliding = true;
                 return PlacementResult.Blocked;
