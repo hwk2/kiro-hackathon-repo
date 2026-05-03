@@ -1,0 +1,41 @@
+# Environment files (may contain API keys, passwords, secrets)
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Expo
+.expo/
+
+# Sensitive files
+*.pem
+*.key
+*.p12
+*.p8
+*.jks
+*.mobileprovision
+*.keystore
