@@ -54,22 +54,3 @@ cd ai_pipeline
 pip install -r requirements.txt
 python src/main.py
 ```
-
-### Unity Visualizer
-Clone [OverseerUniverse/RoomVisualizer](https://github.com/OverseerUniverse/RoomVisualizer), open in Unity 2022 LTS, and press Play. The HTTP listener starts automatically on `localhost:8322`.
-
-## Integration Ports
-
-| Service | Address |
-|---------|---------|
-| AI Pipeline REST API | `http://localhost:8321/api/v1` |
-| Unity Visualizer HTTP | `http://localhost:8322` |
-
-## Specs & Design Docs
-
-- [Room Vision AI — Requirements & Design](`.kiro/specs/room-vision-ai/`)
-- [Unity 3D Visualizer — Requirements & Design](`.kiro/specs/3d-room-visualizer/`)
-
-## Privacy
-
-All data stays local. No accounts, no cloud storage, no telemetry. Bluetooth transfer uses AES-256-GCM encryption. The only external network calls are to a user-configured AI agent endpoint (optional).
