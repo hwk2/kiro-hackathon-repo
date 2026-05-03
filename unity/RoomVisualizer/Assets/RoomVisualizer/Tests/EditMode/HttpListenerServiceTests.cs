@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace RoomVisualizer.Tests
 {
@@ -35,7 +36,7 @@ namespace RoomVisualizer.Tests
         public void SetUp()
         {
             _serviceGo = new GameObject("HttpListenerService");
-            _bridge = _serviceGo.AddComponent<FakeUIBridge>();
+            _bridge = new FakeUIBridge();
             _service = _serviceGo.AddComponent<HttpListenerService>();
             _service.Port = TestPort;
             _service.Bridge = _bridge;
@@ -174,6 +175,10 @@ namespace RoomVisualizer.Tests
                 var service2 = go2.AddComponent<HttpListenerService>();
                 service2.Port = TestPort + 1;
                 service2.Bridge = _bridge;
+
+                LogAssert.Expect(LogType.Error,
+                    $"[HttpListenerService] Cannot bind port {TestPort + 1}: " +
+                    $"There's another listener for http://localhost:{TestPort + 1}/. HTTP interface disabled.");
 
                 Assert.DoesNotThrow(() => service2.StartListening(),
                     "Port-in-use must not throw — service should disable itself gracefully");

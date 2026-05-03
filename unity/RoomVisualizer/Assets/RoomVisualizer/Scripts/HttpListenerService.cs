@@ -43,6 +43,10 @@ namespace RoomVisualizer
         private void Awake()
         {
             if (Bridge == null) Bridge = _bridgeRef;
+        }
+
+        private void Start()
+        {
             StartListening();
         }
 
@@ -148,9 +152,15 @@ namespace RoomVisualizer
                 return;
             }
 
-            // /load-block-model passes the raw JSON string directly — no pre-parsing needed
+            // /load-block-model: validate JSON first, then forward the raw string
             if (path == "/load-block-model")
             {
+                try { JToken.Parse(body); }
+                catch
+                {
+                    Respond(ctx, 400, FailJson("LoadBlockModel", "Invalid JSON body"));
+                    return;
+                }
                 DispatchToUIBridge(ctx, "LoadBlockModel", () => Bridge?.LoadBlockModel(body));
                 return;
             }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace RoomVisualizer.Tests
 {
@@ -47,6 +48,7 @@ namespace RoomVisualizer.Tests
         [Test]
         public async Task ImportAsync_NullBlockModel_ReturnsFailed()
         {
+            LogAssert.Expect(LogType.Error, "[BlockModelImporter] ImportAsync called with a null BlockModelData.");
             ImportResult result = await _importer.ImportAsync(null);
 
             Assert.IsFalse(result.Success);

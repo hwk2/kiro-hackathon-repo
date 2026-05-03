@@ -6,14 +6,30 @@ namespace RoomVisualizer
     /// <summary>
     /// Manages object placement, selection, movement, rotation, and removal in the room.
     /// Implements <see cref="IObjectPlacer"/>.
+    ///
+    /// Extended in task 18.1 to support:
+    ///   - Grid snapping via <see cref="IPlacementGridManager"/>
+    ///   - Surface-type validation via <see cref="PlaceableObject.AllowedSurfaces"/>
+    ///   - Green/red validity-color preview material
+    ///   - Occupancy tracking via <see cref="IPlacementGridManager.MarkOccupied"/> /
+    ///     <see cref="IPlacementGridManager.MarkUnoccupied"/>
+    ///
+    /// Requirements: 16.3, 16.4, 17.1, 17.2, 17.3, 17.4, 17.5,
+    ///               18.1, 18.2, 18.3, 18.4, 18.5,
+    ///               19.1, 19.2, 19.3, 19.4, 19.5, 19.6
     /// </summary>
     public class ObjectPlacer : MonoBehaviour, IObjectPlacer
     {
         // ── Inspector references ─────────────────────────────────────────────
 
+        /// <summary>
+        /// Kept for backward compatibility. Initialized to the green valid-preview material
+        /// in Awake. Callers that assigned a custom material via the inspector will have it
+        /// overridden by the validity-color system.
+        /// </summary>
         [SerializeField]
-        [Tooltip("Semi-transparent material applied to the preview object during placement. " +
-                 "Auto-created if not assigned.")]
+        [Tooltip("Legacy preview material field — kept for backward compatibility. " +
+                 "The validity-color system (green/red) is used at runtime.")]
         private Material _previewMaterial;
 
         [SerializeField]
@@ -25,13 +41,23 @@ namespace RoomVisualizer
         [Tooltip("Reference to the ICollisionSystem. Auto-resolved via FindObjectOfType<CollisionSystem> if not set.")]
         private CollisionSystem _collisionSystemRef;
 
+        [SerializeField]
+        [Tooltip("Reference to the IPlacementGridManager. Auto-resolved via FindObjectOfType<PlacementGridManager> if not set.")]
+        private PlacementGridManager _gridManagerRef;
+
         // ── Public state ─────────────────────────────────────────────────────
 
         /// <summary>
         /// World-space position of the cursor. Set externally each frame (e.g. from a raycast).
-        /// The preview object follows this position in <see cref="Update"/>.
+        /// The preview object follows the snapped grid position derived from this in <see cref="Update"/>.
         /// </summary>
         public Vector3 CursorWorldPosition { get; set; }
+
+        /// <summary>
+        /// The surface the cursor is currently hovering over. Set externally (e.g. from a raycast
+        /// that identifies which surface was hit). Defaults to <see cref="SurfaceId.Floor"/>.
+        /// </summary>
+        public SurfaceId CurrentSurface { get; set; } = SurfaceId.Floor;
 
         /// <summary>
         /// <c>true</c> when the last <see cref="ConfirmPlacement"/> call was blocked by a collision.
@@ -42,6 +68,11 @@ namespace RoomVisualizer
         /// <c>true</c> when an object is currently selected.
         /// </summary>
         public bool HasSelection => _selectedObject != null;
+
+        /// <summary>
+        /// The currently selected <see cref="GameObject"/>, or <c>null</c> if nothing is selected.
+        /// </summary>
+        public GameObject SelectedObject => _selectedObject;
 
         // ── IObjectPlacer ────────────────────────────────────────────────────
 
@@ -55,10 +86,22 @@ namespace RoomVisualizer
         private GameObject _previewObject;
         private GameObject _selectedObject;
         private ICollisionSystem _collisionSystem;
+        private IPlacementGridManager _gridManager;
+
+        // PlaceableObject data read from the prefab at BeginPlacement time.
+        private PlaceableObject _currentPlaceableObject;
+
+        // Valid/invalid preview materials (green/red).
+        private Material _validPreviewMaterial;
+        private Material _invalidPreviewMaterial;
 
         // Original materials per renderer on the selected object, so we can restore them.
         private readonly Dictionary<Renderer, Material[]> _originalMaterials =
             new Dictionary<Renderer, Material[]>();
+
+        // Tracks grid data for each placed object so we can call MarkUnoccupied on removal.
+        private readonly Dictionary<GameObject, PlacedObjectGridData> _placedGridData =
+            new Dictionary<GameObject, PlacedObjectGridData>();
 
         // ── Unity lifecycle ──────────────────────────────────────────────────
 
@@ -81,24 +124,25 @@ namespace RoomVisualizer
                 }
             }
 
-            // Create a default semi-transparent preview material if none was assigned.
-            if (_previewMaterial == null)
+            // Resolve grid manager dependency.
+            if (_gridManagerRef != null)
             {
-                _previewMaterial = new Material(Shader.Find("Standard"));
-                _previewMaterial.name = "PreviewMaterial";
-                Color previewColor = Color.cyan;
-                previewColor.a = 0.4f;
-                // Enable transparency on the Standard shader.
-                _previewMaterial.SetFloat("_Mode", 3); // Transparent
-                _previewMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                _previewMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                _previewMaterial.SetInt("_ZWrite", 0);
-                _previewMaterial.DisableKeyword("_ALPHATEST_ON");
-                _previewMaterial.EnableKeyword("_ALPHABLEND_ON");
-                _previewMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                _previewMaterial.renderQueue = 3000;
-                _previewMaterial.color = previewColor;
+                _gridManager = _gridManagerRef;
             }
+            else
+            {
+                _gridManager = FindObjectOfType<PlacementGridManager>();
+                // Not a hard error — grid snapping is optional if no manager is present.
+            }
+
+            // ── Create validity-color preview materials ───────────────────────
+
+            _validPreviewMaterial   = CreateTransparentMaterial(new Color(0f, 1f, 0f, 0.4f), "ValidPreviewMaterial");
+            _invalidPreviewMaterial = CreateTransparentMaterial(new Color(1f, 0f, 0f, 0.4f), "InvalidPreviewMaterial");
+
+            // Keep _previewMaterial pointing at the valid (green) material for backward compat.
+            if (_previewMaterial == null)
+                _previewMaterial = _validPreviewMaterial;
 
             // Create a default highlight material if none was assigned.
             if (_highlightMaterial == null)
@@ -112,18 +156,55 @@ namespace RoomVisualizer
 
         private void Update()
         {
-            // Keep the preview object following the cursor world position.
-            if (_previewObject != null)
+            if (_previewObject == null)
+                return;
+
+            // Snap preview to nearest valid grid cell (Req 17.3).
+            Vector3 snappedPos = SnapToGrid(CurrentSurface, CursorWorldPosition);
+
+            // For floor placement, lift the preview so its base sits on Y=0
+            // rather than its centre (which would half-sink it into the floor).
+            if (CurrentSurface == SurfaceId.Floor)
             {
-                _previewObject.transform.position = CursorWorldPosition;
+                Bounds b = ComputeWorldBounds(_previewObject);
+                snappedPos.y = b.extents.y;
             }
+
+            _previewObject.transform.position = snappedPos;
+
+            // Determine anchor cell for the current footprint.
+            int width  = _currentPlaceableObject != null ? _currentPlaceableObject.GridWidth  : 1;
+            int height = _currentPlaceableObject != null ? _currentPlaceableObject.GridHeight : 1;
+
+            Vector2Int cell = _gridManager != null
+                ? _gridManager.WorldToGrid(CurrentSurface, snappedPos)
+                : Vector2Int.zero;
+
+            int anchorX = cell.x - width  / 2;
+            int anchorY = cell.y - height / 2;
+
+            // Clamp anchor so even-sized footprints near the grid edge don't go negative.
+            if (_gridManager != null)
+            {
+                var gridSize = (_gridManager as PlacementGridManager)?.GetGridSize(CurrentSurface)
+                               ?? Vector2Int.zero;
+                anchorX = Mathf.Clamp(anchorX, 0, Mathf.Max(0, gridSize.x - width));
+                anchorY = Mathf.Clamp(anchorY, 0, Mathf.Max(0, gridSize.y - height));
+            }
+
+            // Update preview color based on current validity (Req 18.3).
+            bool valid = IsPlacementValid(CurrentSurface, anchorX, anchorY, width, height);
+            Material previewMat = valid ? _validPreviewMaterial : _invalidPreviewMaterial;
+            ApplyMaterialToAllRenderers(_previewObject, previewMat);
         }
 
         // ── IObjectPlacer implementation ─────────────────────────────────────
 
         /// <summary>
         /// Instantiates <paramref name="prefab"/> as a preview object and attaches it to the cursor.
-        /// A semi-transparent preview material is applied to all renderers on the preview.
+        /// Reads the <see cref="PlaceableObject"/> component from the prefab to determine allowed
+        /// surfaces and grid footprint. Falls back to floor-only 1x1 if the component is absent
+        /// (Req 16.4).
         /// </summary>
         public void BeginPlacement(GameObject prefab)
         {
@@ -136,11 +217,21 @@ namespace RoomVisualizer
             // Destroy any existing preview before starting a new one.
             CancelPlacement();
 
+            // Read PlaceableObject component from the prefab (not the instance).
+            _currentPlaceableObject = prefab.GetComponent<PlaceableObject>();
+            if (_currentPlaceableObject == null)
+            {
+                // Req 16.4: treat as floor-only 1x1 and log a warning.
+                Debug.LogWarning(
+                    $"[ObjectPlacer] Prefab '{prefab.name}' has no PlaceableObject component. " +
+                    "Defaulting to Floor-only, 1x1 grid footprint.");
+            }
+
             _previewObject = Instantiate(prefab, CursorWorldPosition, Quaternion.identity);
             _previewObject.name = $"{prefab.name}_Preview";
 
-            // Apply the preview material to every renderer on the preview object.
-            ApplyMaterialToAllRenderers(_previewObject, _previewMaterial);
+            // Apply the valid (green) preview material initially.
+            ApplyMaterialToAllRenderers(_previewObject, _validPreviewMaterial);
 
             // Disable colliders on the preview so it doesn't interfere with overlap checks.
             foreach (Collider col in _previewObject.GetComponentsInChildren<Collider>())
@@ -151,12 +242,9 @@ namespace RoomVisualizer
 
         /// <summary>
         /// Attempts to confirm placement at <paramref name="cursorWorldPos"/>.
-        /// <list type="bullet">
-        ///   <item>Snaps Y so the object's base rests on the floor (Y = half of bounds height).</item>
-        ///   <item>Returns <see cref="PlacementResult.OutOfBounds"/> if outside room bounds.</item>
-        ///   <item>Returns <see cref="PlacementResult.Blocked"/> on collision; sets <see cref="IsColliding"/>.</item>
-        ///   <item>On success, instantiates the actual object, adds it to <see cref="PlacedObjects"/>, destroys the preview.</item>
-        /// </list>
+        /// Performs surface-type, grid-bounds, and occupancy checks in addition to the
+        /// existing collision check. On success, snaps the object to the grid and marks
+        /// the footprint cells as occupied.
         /// </summary>
         public PlacementResult ConfirmPlacement(Vector3 cursorWorldPos)
         {
@@ -168,42 +256,129 @@ namespace RoomVisualizer
                 return PlacementResult.Blocked;
             }
 
-            // Compute the object's local bounds (from all renderers).
-            Bounds objectBounds = ComputeLocalBounds(_previewObject);
+            int width  = _currentPlaceableObject != null ? _currentPlaceableObject.GridWidth  : 1;
+            int height = _currentPlaceableObject != null ? _currentPlaceableObject.GridHeight : 1;
 
-            // Snap Y so the base of the object rests on the floor (Y = 0).
-            float snappedY = objectBounds.extents.y - objectBounds.center.y;
-            Vector3 placementPosition = new Vector3(cursorWorldPos.x, snappedY, cursorWorldPos.z);
-
-            // Check room bounds first.
-            if (_collisionSystem != null && !_collisionSystem.IsWithinRoomBounds(objectBounds, placementPosition))
+            // ── 1. Surface-type check (Req 19.1) ─────────────────────────────
+            if (_currentPlaceableObject != null &&
+                _currentPlaceableObject.AllowedSurfaces != null &&
+                _currentPlaceableObject.AllowedSurfaces.Count > 0 &&
+                !_currentPlaceableObject.AllowedSurfaces.Contains(CurrentSurface))
             {
-                return PlacementResult.OutOfBounds;
+                return PlacementResult.Blocked;
             }
 
-            // Check for collision with existing objects.
-            if (_collisionSystem != null && _collisionSystem.WouldCollide(objectBounds, placementPosition))
+            // ── 2. Grid-bounds and occupancy checks (Req 19.2, 19.3) ─────────
+            // Use the same snapped XZ position the preview is showing so the
+            // validity check in Update and ConfirmPlacement always agree.
+            Vector3 snappedCursor = SnapToGrid(CurrentSurface, cursorWorldPos);
+            Vector2Int cell = _gridManager != null
+                ? _gridManager.WorldToGrid(CurrentSurface, snappedCursor)
+                : Vector2Int.zero;
+
+            // Anchor: top-left corner of the footprint, clamped so it never goes
+            // negative (which would cause a false OutOfBounds for even-sized footprints
+            // near the grid origin).
+            int anchorX = cell.x - width  / 2;
+            int anchorY = cell.y - height / 2;
+
+            if (_gridManager != null)
+            {
+                var gridSize = (_gridManager as PlacementGridManager)?.GetGridSize(CurrentSurface)
+                               ?? Vector2Int.zero;
+
+                // Clamp anchor so the footprint stays within the grid.
+                anchorX = Mathf.Clamp(anchorX, 0, Mathf.Max(0, gridSize.x - width));
+                anchorY = Mathf.Clamp(anchorY, 0, Mathf.Max(0, gridSize.y - height));
+
+                // Grid-bounds check (Req 19.2).
+                if (anchorX + width > gridSize.x || anchorY + height > gridSize.y)
+                {
+                    return PlacementResult.OutOfBounds;
+                }
+
+                // Occupancy check (Req 19.3).
+                for (int dx = 0; dx < width; dx++)
+                    for (int dy = 0; dy < height; dy++)
+                        if (_gridManager.IsCellOccupied(CurrentSurface, anchorX + dx, anchorY + dy))
+                        {
+                            IsColliding = true;
+                            return PlacementResult.Blocked;
+                        }
+            }
+
+            // ── 3. Snap placement position to grid (Req 17.1, 17.2) ──────────
+            Vector3 placementPosition;
+            if (_gridManager != null)
+            {
+                // Anchor cell -> world centre of the footprint.
+                int centreX = anchorX + width  / 2;
+                int centreY = anchorY + height / 2;
+                placementPosition = _gridManager.GridToWorld(CurrentSurface, centreX, centreY);
+
+                // GridToWorld returns the surface plane position (Y=0 for floor).
+                // The object pivot is at its centre, so we must lift it by half its
+                // world-space height so the base sits on the surface rather than
+                // clipping through it.
+                if (CurrentSurface == SurfaceId.Floor)
+                {
+                    Bounds b = ComputeWorldBounds(_previewObject);
+                    float halfHeight = b.extents.y;
+                    placementPosition.y = halfHeight;
+                }
+            }
+            else
+            {
+                // Fallback: snap Y so the base rests on the floor.
+                Bounds objectBounds = ComputeWorldBounds(_previewObject);
+                float snappedY = objectBounds.extents.y;
+                placementPosition = new Vector3(cursorWorldPos.x, snappedY, cursorWorldPos.z);
+            }
+
+            // ── 4. Room-bounds check ──────────────────────────────────────────
+            // Use world-space bounds of the preview (already positioned at placementPosition)
+            // rather than local bounds + position offset, which would double-count the Y lift.
+            if (_collisionSystem != null)
+            {
+                // Temporarily move the preview to the placement position so world bounds are accurate.
+                Vector3 prevPos = _previewObject.transform.position;
+                _previewObject.transform.position = placementPosition;
+                Bounds worldBounds = ComputeWorldBounds(_previewObject);
+                _previewObject.transform.position = prevPos;
+
+                Bounds roomBounds = _collisionSystem.GetRoomBounds();
+                bool inBounds = roomBounds.Contains(worldBounds.min) && roomBounds.Contains(worldBounds.max);
+                if (!inBounds)
+                    return PlacementResult.OutOfBounds;
+            }
+
+            // ── 5. Collision check with existing objects (Req 19.4) ───────────
+            if (_collisionSystem != null && _collisionSystem.WouldCollide(ComputeLocalBounds(_previewObject), placementPosition))
             {
                 IsColliding = true;
                 return PlacementResult.Blocked;
             }
 
-            // Placement is valid — promote the preview to a real placed object.
-            // Re-enable colliders so the placed object participates in future overlap checks.
+            // ── 6. Promote preview to placed object ───────────────────────────
             foreach (Collider col in _previewObject.GetComponentsInChildren<Collider>(includeInactive: true))
-            {
                 col.enabled = true;
-            }
 
-            // Restore original materials (remove the preview tint).
             RestoreOriginalMaterials(_previewObject);
 
-            // Position the object at the snapped placement position.
             _previewObject.transform.position = placementPosition;
             _previewObject.name = _previewObject.name.Replace("_Preview", string.Empty);
 
+            // Mark grid cells occupied (Req 19.5).
+            if (_gridManager != null)
+            {
+                _gridManager.MarkOccupied(CurrentSurface, anchorX, anchorY, width, height);
+                _placedGridData[_previewObject] = new PlacedObjectGridData(
+                    CurrentSurface, anchorX, anchorY, width, height);
+            }
+
             _placedObjects.Add(_previewObject);
             _previewObject = null;
+            _currentPlaceableObject = null;
 
             return PlacementResult.Success;
         }
@@ -212,6 +387,7 @@ namespace RoomVisualizer
         /// Places an already-instantiated <paramref name="go"/> at <paramref name="position"/>
         /// without calling Instantiate. Used by BlockModelImporter which creates GameObjects
         /// itself before handing them to the placer.
+        /// Snaps to grid if <see cref="IPlacementGridManager"/> is available.
         /// </summary>
         public PlacementResult PlaceDirect(GameObject go, Vector3 position)
         {
@@ -223,14 +399,27 @@ namespace RoomVisualizer
                 return PlacementResult.Blocked;
             }
 
-            Bounds objectBounds = ComputeLocalBounds(go);
-            float snappedY = objectBounds.extents.y - objectBounds.center.y;
-            Vector3 placementPosition = new Vector3(position.x, snappedY, position.z);
+            Vector3 placementPosition = position;
 
-            if (_collisionSystem != null && !_collisionSystem.IsWithinRoomBounds(objectBounds, placementPosition))
+            if (_gridManager != null)
+            {
+                // Snap to nearest grid cell on the floor (PlaceDirect is floor-only for BlockModel).
+                Vector2Int snappedCell = _gridManager.WorldToGrid(SurfaceId.Floor, position);
+                placementPosition = _gridManager.GridToWorld(SurfaceId.Floor, snappedCell.x, snappedCell.y);
+            }
+            else
+            {
+                Bounds objectBounds = ComputeLocalBounds(go);
+                float snappedY = objectBounds.extents.y - objectBounds.center.y;
+                placementPosition = new Vector3(position.x, snappedY, position.z);
+            }
+
+            Bounds bounds = ComputeLocalBounds(go);
+
+            if (_collisionSystem != null && !_collisionSystem.IsWithinRoomBounds(bounds, placementPosition))
                 return PlacementResult.OutOfBounds;
 
-            if (_collisionSystem != null && _collisionSystem.WouldCollide(objectBounds, placementPosition))
+            if (_collisionSystem != null && _collisionSystem.WouldCollide(bounds, placementPosition))
             {
                 IsColliding = true;
                 return PlacementResult.Blocked;
@@ -279,15 +468,11 @@ namespace RoomVisualizer
                 }
                 rend.materials = highlightedMaterials;
             }
-
-            // HasSelection is derived from _selectedObject != null (see property above).
-            // In a full implementation, transform gizmo handles would be shown here.
-            // For now, the HasSelection flag signals the UI to display handle controls.
         }
 
         /// <summary>
         /// Moves <paramref name="obj"/> by <paramref name="delta"/>, constraining to the XZ plane
-        /// (Y position is preserved).
+        /// (Y position is preserved). Snaps to the nearest grid cell after the move (Req 17.4).
         /// </summary>
         public void MoveObject(GameObject obj, Vector3 delta)
         {
@@ -299,10 +484,24 @@ namespace RoomVisualizer
 
             Vector3 current = obj.transform.position;
             // Apply delta only on X and Z; preserve Y.
-            obj.transform.position = new Vector3(
-                current.x + delta.x,
-                current.y,
-                current.z + delta.z);
+            Vector3 moved = new Vector3(current.x + delta.x, current.y, current.z + delta.z);
+
+            if (_gridManager != null)
+            {
+                // Determine which surface this object is on (use stored data if available).
+                SurfaceId surface = SurfaceId.Floor;
+                if (_placedGridData.TryGetValue(obj, out PlacedObjectGridData data))
+                    surface = data.Surface;
+
+                Vector2Int snappedCell = _gridManager.WorldToGrid(surface, moved);
+                Vector3 snapped = _gridManager.GridToWorld(surface, snappedCell.x, snappedCell.y);
+                // Preserve Y for floor objects (GridToWorld returns Y=0 for floor).
+                if (surface == SurfaceId.Floor)
+                    snapped.y = current.y;
+                moved = snapped;
+            }
+
+            obj.transform.position = moved;
         }
 
         /// <summary>
@@ -322,6 +521,8 @@ namespace RoomVisualizer
 
         /// <summary>
         /// Destroys <paramref name="obj"/> and removes it from <see cref="PlacedObjects"/>.
+        /// Calls <see cref="IPlacementGridManager.MarkUnoccupied"/> for the object's footprint
+        /// (Req 19.6).
         /// Does nothing if <paramref name="obj"/> is null or not in the placed objects list.
         /// </summary>
         public void RemoveObject(GameObject obj)
@@ -338,12 +539,19 @@ namespace RoomVisualizer
                 return;
             }
 
+            // Mark grid cells unoccupied (Req 19.6).
+            if (_gridManager != null && _placedGridData.TryGetValue(obj, out PlacedObjectGridData gridData))
+            {
+                _gridManager.MarkUnoccupied(gridData.Surface, gridData.GridX, gridData.GridY,
+                                            gridData.GridWidth, gridData.GridHeight);
+                _placedGridData.Remove(obj);
+            }
+
             // If the object being removed is currently selected, deselect it first.
             if (_selectedObject == obj)
             {
                 _selectedObject = null;
-                _originalMaterials.Remove(
-                    obj.GetComponentInChildren<Renderer>());
+                _originalMaterials.Remove(obj.GetComponentInChildren<Renderer>());
             }
 
             _placedObjects.Remove(obj);
@@ -363,7 +571,18 @@ namespace RoomVisualizer
                 _previewObject = null;
             }
 
+            _currentPlaceableObject = null;
             IsColliding = false;
+        }
+
+        /// <summary>
+        /// Rotates the current placement preview by <c><paramref name="steps"/> * 15</c>
+        /// degrees around the Y axis. Has no effect if no placement is in progress.
+        /// </summary>
+        public void RotatePreview(int steps)
+        {
+            if (_previewObject == null) return;
+            _previewObject.transform.Rotate(Vector3.up, steps * 15f, Space.World);
         }
 
         /// <summary>
@@ -390,8 +609,74 @@ namespace RoomVisualizer
         // ── Private helpers ──────────────────────────────────────────────────
 
         /// <summary>
+        /// Returns <c>true</c> when the footprint anchored at
+        /// (<paramref name="anchorX"/>, <paramref name="anchorY"/>) on <paramref name="surface"/>
+        /// is valid: surface type allowed, all cells within bounds, and no cell occupied.
+        /// </summary>
+        private bool IsPlacementValid(SurfaceId surface, int anchorX, int anchorY, int width, int height)
+        {
+            // 1. Surface type check.
+            if (_currentPlaceableObject != null &&
+                _currentPlaceableObject.AllowedSurfaces != null &&
+                _currentPlaceableObject.AllowedSurfaces.Count > 0 &&
+                !_currentPlaceableObject.AllowedSurfaces.Contains(surface))
+                return false;
+
+            // 2. Grid bounds and occupancy checks.
+            if (_gridManager != null)
+            {
+                var gridSize = (_gridManager as PlacementGridManager)?.GetGridSize(surface)
+                               ?? Vector2Int.zero;
+
+                if (anchorX < 0 || anchorY < 0 ||
+                    anchorX + width > gridSize.x || anchorY + height > gridSize.y)
+                    return false;
+
+                // 3. Occupancy check.
+                for (int dx = 0; dx < width; dx++)
+                    for (int dy = 0; dy < height; dy++)
+                        if (_gridManager.IsCellOccupied(surface, anchorX + dx, anchorY + dy))
+                            return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Snaps <paramref name="worldPos"/> to the nearest grid cell centre on
+        /// <paramref name="surface"/>. Returns <paramref name="worldPos"/> unchanged if no
+        /// grid manager is available.
+        /// </summary>
+        private Vector3 SnapToGrid(SurfaceId surface, Vector3 worldPos)
+        {
+            if (_gridManager == null)
+                return worldPos;
+
+            Vector2Int cell = _gridManager.WorldToGrid(surface, worldPos);
+            return _gridManager.GridToWorld(surface, cell.x, cell.y);
+        }
+
+        /// <summary>
+        /// Creates a new Standard-shader material with transparency enabled and the given color.
+        /// </summary>
+        private static Material CreateTransparentMaterial(Color color, string name)
+        {
+            var mat = new Material(Shader.Find("Standard"));
+            mat.name = name;
+            mat.SetFloat("_Mode", 3); // Transparent
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.DisableKeyword("_ALPHATEST_ON");
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.renderQueue = 3000;
+            mat.color = color;
+            return mat;
+        }
+
+        /// <summary>
         /// Applies <paramref name="mat"/> to every renderer on <paramref name="root"/> and its children.
-        /// Stores the original materials so they can be restored later.
         /// </summary>
         private void ApplyMaterialToAllRenderers(GameObject root, Material mat)
         {
@@ -423,6 +708,27 @@ namespace RoomVisualizer
         }
 
         /// <summary>
+        /// Computes the combined world-space <see cref="Bounds"/> of all renderers on
+        /// <paramref name="root"/> and its children.
+        /// Falls back to a unit cube centred at the root's position if no renderers are found.
+        /// Unlike <see cref="ComputeLocalBounds"/>, this returns bounds in world space so
+        /// <c>extents.y</c> directly gives the half-height needed to lift the pivot to the floor.
+        /// </summary>
+        private static Bounds ComputeWorldBounds(GameObject root)
+        {
+            Renderer[] renderers = root.GetComponentsInChildren<Renderer>();
+
+            if (renderers.Length == 0)
+                return new Bounds(root.transform.position, Vector3.one);
+
+            Bounds combined = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                combined.Encapsulate(renderers[i].bounds);
+
+            return combined;
+        }
+
+        /// <summary>
         /// Computes the combined local-space <see cref="Bounds"/> of all renderers on
         /// <paramref name="root"/> and its children, expressed relative to the root's pivot.
         /// Falls back to a unit cube if no renderers are found.
@@ -447,6 +753,31 @@ namespace RoomVisualizer
             // Convert world-space bounds centre to local space relative to the root pivot.
             Vector3 localCenter = root.transform.InverseTransformPoint(combined.center);
             return new Bounds(localCenter, combined.size);
+        }
+    }
+
+    // ── Supporting data class ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Records the grid placement data for a placed object so that
+    /// <see cref="ObjectPlacer.RemoveObject"/> can call
+    /// <see cref="IPlacementGridManager.MarkUnoccupied"/> with the correct footprint.
+    /// </summary>
+    internal sealed class PlacedObjectGridData
+    {
+        public readonly SurfaceId Surface;
+        public readonly int GridX;
+        public readonly int GridY;
+        public readonly int GridWidth;
+        public readonly int GridHeight;
+
+        public PlacedObjectGridData(SurfaceId surface, int gridX, int gridY, int gridWidth, int gridHeight)
+        {
+            Surface    = surface;
+            GridX      = gridX;
+            GridY      = gridY;
+            GridWidth  = gridWidth;
+            GridHeight = gridHeight;
         }
     }
 }

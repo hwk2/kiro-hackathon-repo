@@ -6,5 +6,6 @@ namespace RoomVisualizer
     {
         bool WouldCollide(Bounds objectBounds, Vector3 proposedPosition);
         bool IsWithinRoomBounds(Bounds objectBounds, Vector3 position);
+        Bounds GetRoomBounds();
     }
 }

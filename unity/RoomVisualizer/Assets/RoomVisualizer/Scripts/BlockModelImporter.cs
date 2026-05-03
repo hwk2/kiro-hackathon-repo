@@ -212,7 +212,13 @@ namespace RoomVisualizer
                     result.BlocksFailed++;
 
                     if (usedDefaultPrimitive && resolvedObject != null)
+                    {
+#if UNITY_EDITOR
+                        DestroyImmediate(resolvedObject);
+#else
                         Destroy(resolvedObject);
+#endif
+                    }
 
                     return;
                 }

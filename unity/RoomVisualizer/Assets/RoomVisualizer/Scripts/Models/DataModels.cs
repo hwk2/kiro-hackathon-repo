@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace RoomVisualizer
 {
-    // ── Scene serialisation ──────────────────────────────────────────────────
+    // -- Scene serialisation --------------------------------------------------
 
     [Serializable]
     public class SceneData
@@ -13,7 +13,7 @@ namespace RoomVisualizer
         public List<PlacedObjectData> Objects;
         public Dictionary<string, MaterialData> Surfaces; // keyed by SurfaceId name
         public LightingData Lighting;
-        public string SaveFormatVersion = "1.0";
+        public string SaveFormatVersion = "2.0";
     }
 
     [Serializable]
@@ -27,10 +27,19 @@ namespace RoomVisualizer
     [Serializable]
     public class PlacedObjectData
     {
+        // v1.0 fields (preserved for backward compatibility)
         public string AssetPath;
         public SerializableVector3 Position;
         public SerializableVector3 EulerAngles;
         public SerializableVector3 Scale;
+
+        // v2.0 extended fields (null/0 in v1.0 files -- backward-compatible)
+        public string PrefabId;             // null in v1.0 format; matches AssetLibraryConfig key
+        public string SurfaceId;            // null in v1.0 format; SurfaceId enum name
+        public int GridX;
+        public int GridY;
+        public int RotationStep;            // 0-3
+        public Dictionary<string, string> CustomProperties;
     }
 
     [Serializable]
@@ -75,7 +84,7 @@ namespace RoomVisualizer
         public Color ToColor() => new Color(R, G, B, A);
     }
 
-    // ── Operation results ────────────────────────────────────────────────────
+    // -- Operation results ----------------------------------------------------
 
     public class LoadResult
     {
@@ -91,6 +100,7 @@ namespace RoomVisualizer
         public SceneData Data;
         public string ErrorMessage;
         public List<MissingAssetWarning> MissingAssets = new List<MissingAssetWarning>();
+        public List<string> Warnings = new List<string>();
     }
 
     public class MissingAssetWarning
@@ -115,7 +125,7 @@ namespace RoomVisualizer
         public List<string> Warnings = new List<string>();
     }
 
-    // ── BlockModel (incoming from AI Pipeline — read-only mapping) ───────────
+    // -- BlockModel (incoming from AI Pipeline -- read-only mapping) ----------
 
     [Serializable]
     public class BlockModelData
@@ -164,7 +174,7 @@ namespace RoomVisualizer
         public float pitch, yaw, roll;
     }
 
-    // ── Material / Lighting params (used by UIBridge HTTP endpoints) ─────────
+    // -- Material / Lighting params (used by UIBridge HTTP endpoints) ---------
 
     [Serializable]
     public class MaterialParams

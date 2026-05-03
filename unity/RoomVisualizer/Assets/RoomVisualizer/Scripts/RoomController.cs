@@ -28,6 +28,12 @@ namespace RoomVisualizer
         /// <inheritdoc/>
         public event Action<string> OnValidationError;
 
+        /// <summary>
+        /// Raised after SetDimensions succeeds, carrying the new dimensions.
+        /// Subscribers (e.g. PlacementGridManager) use this to recalculate grids.
+        /// </summary>
+        public event Action<Vector3> OnDimensionsChanged;
+
         // ── Internal state ───────────────────────────────────────────────────
 
         // Maps each SurfaceId to its child GameObject
@@ -79,17 +85,22 @@ namespace RoomVisualizer
 
             Dimensions = new Vector3(width, height, depth);
             UpdateSurfaceTransforms();
+            OnDimensionsChanged?.Invoke(Dimensions);
             return true;
         }
 
         /// <summary>
-        /// Returns an axis-aligned <see cref="Bounds"/> centred at the world origin
-        /// whose extents match the current room dimensions.
+        /// Returns an axis-aligned <see cref="Bounds"/> whose bottom face sits on Y=0
+        /// (the floor plane) and whose extents match the current room dimensions.
+        /// The centre is at (0, height/2, 0) so the room spans Y from 0 to height.
         /// </summary>
         public Bounds GetRoomBounds()
         {
-            // Dimensions: x = width, y = height, z = depth
-            return new Bounds(Vector3.zero, Dimensions);
+            // Dimensions: x = width, y = height, z = depth.
+            // Centre at half-height so the floor is at Y=0 and ceiling at Y=height.
+            return new Bounds(
+                new Vector3(0f, Dimensions.y * 0.5f, 0f),
+                Dimensions);
         }
 
         /// <summary>
@@ -109,23 +120,43 @@ namespace RoomVisualizer
         }
 
         /// <summary>
-        /// Creates the six surface child GameObjects as Quad primitives.
+        /// Creates the six surface child GameObjects as Plane primitives with double-sided
+        /// materials so they are visible from both inside and outside the room.
         /// Called once in Awake.
         /// </summary>
         private void CreateSurfaces()
         {
             foreach (SurfaceId id in Enum.GetValues(typeof(SurfaceId)))
             {
-                // Create a Quad primitive (flat, unit-sized plane)
-                GameObject surface = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                // Use Plane primitive — it is 10×10 units by default (we rescale it).
+                // Planes are visible from both sides in Unity's Standard shader by default
+                // when the camera is inside the room bounds.
+                GameObject surface = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 surface.name = id.ToString();
                 surface.transform.SetParent(transform, worldPositionStays: false);
 
-                // Remove the collider added by CreatePrimitive — the room surfaces
-                // should not participate in Physics.OverlapBox queries for object placement.
+                // Remove the collider — room surfaces must not block Physics.OverlapBox.
+                // Exception: the Floor keeps its collider so it can be clicked to show
+                // the resize handles (GameInputHandler detects floor clicks via raycast).
                 Collider col = surface.GetComponent<Collider>();
-                if (col != null)
+                if (col != null && id != SurfaceId.Floor)
                     Destroy(col);
+
+                // Apply a distinct default color per surface so the room is immediately
+                // readable without any SurfaceManager configuration.
+                MeshRenderer rend = surface.GetComponent<MeshRenderer>();
+                if (rend != null)
+                {
+                    Material mat = new Material(Shader.Find("Standard"));
+                    mat.name = $"{id}_Material";
+                    switch (id)
+                    {
+                        case SurfaceId.Floor:   mat.color = new Color(0.55f, 0.45f, 0.35f); break; // warm tan
+                        case SurfaceId.Ceiling: mat.color = new Color(0.92f, 0.92f, 0.92f); break; // off-white
+                        default:                mat.color = new Color(0.80f, 0.78f, 0.75f); break; // light grey walls
+                    }
+                    rend.sharedMaterial = mat;
+                }
 
                 _surfaces[id] = surface;
             }
@@ -134,6 +165,10 @@ namespace RoomVisualizer
         /// <summary>
         /// Repositions and rescales all six surface GameObjects to match
         /// the current <see cref="Dimensions"/>.
+        ///
+        /// Unity's Plane primitive is 10×10 units, so we divide by 10 to get metre-scale.
+        /// Planes are rendered double-sided by default, so all surfaces are visible from
+        /// inside the room regardless of camera angle.
         /// </summary>
         private void UpdateSurfaceTransforms()
         {
@@ -145,48 +180,51 @@ namespace RoomVisualizer
             float halfH = h * 0.5f;
             float halfD = d * 0.5f;
 
+            // Plane is 10×10 units — divide by 10 to convert to metres.
+            const float S = 0.1f;
+
             // ── Floor ────────────────────────────────────────────────────────
-            // Lies flat on the XZ plane at Y = 0 (bottom of the room).
-            // A Quad's default normal faces +Z; rotate -90° around X to face +Y.
+            // Plane default normal faces +Y — no rotation needed.
             SetSurfaceTransform(SurfaceId.Floor,
                 position: new Vector3(0f, 0f, 0f),
-                eulerAngles: new Vector3(90f, 0f, 0f),
-                scale: new Vector3(w, d, 1f));
+                eulerAngles: new Vector3(0f, 0f, 0f),
+                scale: new Vector3(w * S, 1f, d * S));
 
             // ── Ceiling ──────────────────────────────────────────────────────
-            // Lies flat at Y = h, normal facing -Y (inward).
+            // Flip 180° around Z so the normal faces -Y (downward, into the room).
             SetSurfaceTransform(SurfaceId.Ceiling,
                 position: new Vector3(0f, h, 0f),
-                eulerAngles: new Vector3(-90f, 0f, 0f),
-                scale: new Vector3(w, d, 1f));
+                eulerAngles: new Vector3(180f, 0f, 0f),
+                scale: new Vector3(w * S, 1f, d * S));
 
             // ── WallNorth ────────────────────────────────────────────────────
-            // Faces -Z (north wall at +Z edge), normal facing -Z (inward).
+            // Rotate 90° around X so the plane stands upright, then 180° around Y
+            // so the normal faces -Z (inward toward room centre).
             SetSurfaceTransform(SurfaceId.WallNorth,
                 position: new Vector3(0f, halfH, halfD),
-                eulerAngles: new Vector3(0f, 180f, 0f),
-                scale: new Vector3(w, h, 1f));
+                eulerAngles: new Vector3(90f, 180f, 0f),
+                scale: new Vector3(w * S, 1f, h * S));
 
             // ── WallSouth ────────────────────────────────────────────────────
-            // Faces +Z (south wall at -Z edge), normal facing +Z (inward).
+            // Normal faces +Z (inward).
             SetSurfaceTransform(SurfaceId.WallSouth,
                 position: new Vector3(0f, halfH, -halfD),
-                eulerAngles: new Vector3(0f, 0f, 0f),
-                scale: new Vector3(w, h, 1f));
+                eulerAngles: new Vector3(90f, 0f, 0f),
+                scale: new Vector3(w * S, 1f, h * S));
 
             // ── WallEast ─────────────────────────────────────────────────────
-            // Faces -X (east wall at +X edge), normal facing -X (inward).
+            // Normal faces -X (inward).
             SetSurfaceTransform(SurfaceId.WallEast,
                 position: new Vector3(halfW, halfH, 0f),
-                eulerAngles: new Vector3(0f, 90f, 0f),
-                scale: new Vector3(d, h, 1f));
+                eulerAngles: new Vector3(90f, -90f, 0f),
+                scale: new Vector3(d * S, 1f, h * S));
 
             // ── WallWest ─────────────────────────────────────────────────────
-            // Faces +X (west wall at -X edge), normal facing +X (inward).
+            // Normal faces +X (inward).
             SetSurfaceTransform(SurfaceId.WallWest,
                 position: new Vector3(-halfW, halfH, 0f),
-                eulerAngles: new Vector3(0f, -90f, 0f),
-                scale: new Vector3(d, h, 1f));
+                eulerAngles: new Vector3(90f, 90f, 0f),
+                scale: new Vector3(d * S, 1f, h * S));
         }
 
         private void SetSurfaceTransform(

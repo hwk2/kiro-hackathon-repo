@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4923843223b6c45278b6d4ac7bfe789d, type: 3}
+  m_Name: AssetLibraryConfig
+  m_EditorClassIdentifier: RoomVisualizer::RoomVisualizer.AssetLibraryConfig
+  Entries:
+  - PrefabId: bed
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/bed.prefab
+    DisplayName: Bed
+    Thumbnail: {fileID: 0}
+    Category: Furniture
+  - PrefabId: desk
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/desk.prefab
+    DisplayName: Desk
+    Thumbnail: {fileID: 0}
+    Category: Furniture
+  - PrefabId: chair
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/chair.prefab
+    DisplayName: Chair
+    Thumbnail: {fileID: 0}
+    Category: Furniture
+  - PrefabId: wardrobe
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/wardrobe.prefab
+    DisplayName: Wardrobe
+    Thumbnail: {fileID: 0}
+    Category: Furniture
+  - PrefabId: shelves
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/shelves.prefab
+    DisplayName: Shelves
+    Thumbnail: {fileID: 0}
+    Category: Furniture
+  - PrefabId: rug
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/rug.prefab
+    DisplayName: Rug
+    Thumbnail: {fileID: 0}
+    Category: Furniture
+  - PrefabId: lamp
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/lamp.prefab
+    DisplayName: Lamp
+    Thumbnail: {fileID: 0}
+    Category: Lighting
+  - PrefabId: guitar
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/guitar.prefab
+    DisplayName: Guitar
+    Thumbnail: {fileID: 0}
+    Category: Decoration
+  - PrefabId: books
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/books.prefab
+    DisplayName: Books
+    Thumbnail: {fileID: 0}
+    Category: Decoration
+  - PrefabId: laptop
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/laptop.prefab
+    DisplayName: Laptop
+    Thumbnail: {fileID: 0}
+    Category: Decoration
+  - PrefabId: poster
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/poster.prefab
+    DisplayName: Poster
+    Thumbnail: {fileID: 0}
+    Category: Decoration
+  - PrefabId: hook
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/hook.prefab
+    DisplayName: Hook
+    Thumbnail: {fileID: 0}
+    Category: Decoration
+  - PrefabId: window
+    AssetPath: Assets/RoomVisualizer/Prefabs/Starter/window.prefab
+    DisplayName: Window
+    Thumbnail: {fileID: 0}
+    Category: Architecture

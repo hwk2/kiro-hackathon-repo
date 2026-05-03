@@ -112,7 +112,8 @@ namespace RoomVisualizer
         /// Injects all subsystem interface references programmatically (interface-typed overload).
         /// Used by tests and the bootstrapper when concrete MonoBehaviour references are not available.
         /// Parameters: roomController, assetLoader, objectPlacer, cameraController,
-        ///             surfaceManager, lightingManager, sceneSerializer, blockModelImporter.
+        ///             surfaceManager, lightingManager, sceneSerializer, blockModelImporter,
+        ///             gridManager (optional — used to create a grid-aware SceneSerializer).
         /// Any parameter may be null.
         /// </summary>
         public void SetDependencies(
@@ -123,7 +124,8 @@ namespace RoomVisualizer
             ISurfaceManager surfaceManager,
             ILightingManager lightingManager,
             ISceneSerializer sceneSerializer,
-            IBlockModelImporter blockModelImporter)
+            IBlockModelImporter blockModelImporter,
+            IPlacementGridManager gridManager = null)
         {
             _iRoomController      = roomController;
             _iAssetLoader         = assetLoader;
@@ -133,6 +135,8 @@ namespace RoomVisualizer
             _iLightingManager     = lightingManager;
             if (sceneSerializer != null)
                 _sceneSerializer  = sceneSerializer;
+            else if (gridManager != null)
+                _sceneSerializer  = new SceneSerializer(gridManager);
             _iBlockModelImporter  = blockModelImporter;
         }
 

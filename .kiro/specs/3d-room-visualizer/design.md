@@ -716,3 +716,379 @@ This keeps EditMode property tests fast and deterministic.
 | Surface independence | Property test (Property 12) | 100 random color sets |
 | glTF loading | Integration tests | 3 representative files |
 | UI_Bridge contract | Smoke + property test | All 9 methods |
+
+
+---
+
+## Polishing Phase: Requirements 12–22
+
+*The following sections extend the existing design to cover the polishing requirements (12–22). All existing subsystems, interfaces, data models, and properties above remain unchanged. New subsystems are additive — they extend or depend on existing ones without replacing them.*
+
+---
+
+## New Interfaces (Requirements 12–22)
+
+### IIsometricCameraController
+
+Extends `ICameraController` with isometric-mode and four-step yaw rotation. `CameraController` is extended in-place (not replaced) to implement this interface.
+
+```csharp
+public interface IIsometricCameraController : ICameraController
+{
+    int YawStepIndex { get; }           // 0–3, current 90° step
+    bool IsIsometricMode { get; }
+    void RotateStep(int direction);     // +1 or -1, advances yaw step
+    void ToggleIsometricMode();
+}
+```
+
+**Yaw step to angle mapping:**
+
+| YawStepIndex | Yaw (degrees) |
+|---|---|
+| 0 | 45 |
+| 1 | 135 |
+| 2 | 225 |
+| 3 | 315 |
+
+`RotateStep(+1)` increments `YawStepIndex` modulo 4; `RotateStep(-1)` decrements modulo 4. The yaw is then set to `45 + YawStepIndex * 90`. Pitch is fixed at 30 degrees in isometric mode. Yaw step transitions animate over no more than 0.3 seconds via a lerp in `Update`.
+
+`ToggleIsometricMode` saves and restores the perspective yaw, pitch, and distance (same save/restore pattern as the existing `ToggleTopDownView`). When entering isometric mode, the camera switches to orthographic projection, locks yaw to the nearest step, and locks pitch to 30 degrees. Orbit mouse input is ignored while `IsIsometricMode` is true.
+
+`OnYawStepChanged` is a C# event raised by `CameraController` whenever `YawStepIndex` changes, so `WallVisibilityManager` can subscribe without polling.
+
+```csharp
+// Added to CameraController
+public event Action<int> OnYawStepChanged;
+```
+
+---
+
+### IWallVisibilityManager
+
+```csharp
+public interface IWallVisibilityManager
+{
+    void OnYawStepChanged(int yawStepIndex);
+    float FadeAlpha { get; set; }       // default 0.15
+    float FadeDuration { get; set; }    // default 0.2s
+}
+```
+
+`WallVisibilityManager` is a new `MonoBehaviour` that subscribes to `CameraController.OnYawStepChanged` in `Start`. It maintains a mapping from yaw step index to the two front-facing walls:
+
+| YawStepIndex | Front-facing walls (faded) |
+|---|---|
+| 0 (45 deg) | WallNorth, WallEast |
+| 1 (135 deg) | WallNorth, WallWest |
+| 2 (225 deg) | WallSouth, WallWest |
+| 3 (315 deg) | WallSouth, WallEast |
+
+On each yaw step change, `WallVisibilityManager`:
+1. Starts a coroutine to fade the two new front-facing walls from alpha 1.0 to `FadeAlpha` over `FadeDuration` seconds.
+2. Starts a coroutine to restore the two previously front-facing walls from `FadeAlpha` to 1.0 over `FadeDuration` seconds.
+
+**Material instance safety:** The manager calls `GetComponent<Renderer>().material` (not `sharedMaterial`) to obtain a per-instance material before modifying the alpha channel. This ensures the shared material asset in the project is never modified (Requirement 14.4 / Property 25). If a wall has a user-assigned texture, the `mainTexture` and `mainTextureScale` are preserved — only the `color.a` channel is changed.
+
+---
+
+### IPlacementGridManager
+
+```csharp
+public interface IPlacementGridManager
+{
+    float CellSize { get; }             // default 0.5m
+    Vector3 GridToWorld(SurfaceId surface, int gridX, int gridY);
+    Vector2Int WorldToGrid(SurfaceId surface, Vector3 worldPosition);
+    bool IsCellOccupied(SurfaceId surface, int gridX, int gridY);
+    void MarkOccupied(SurfaceId surface, int gridX, int gridY, int width, int height);
+    void MarkUnoccupied(SurfaceId surface, int gridX, int gridY, int width, int height);
+    void RecalculateGrids();            // called when room dimensions change
+}
+```
+
+`PlacementGridManager` is a new `MonoBehaviour` injected into `ObjectPlacer` and `SceneSerializer`. It maintains five independent grids (Floor, WallNorth, WallSouth, WallEast, WallWest) — the ceiling is excluded from placement.
+
+**Grid coordinate system:**
+
+- **Floor:** gridX maps to world X, gridY maps to world Z. Origin at room corner (-width/2, 0, -depth/2). Grid dimensions: `ceil(width / cellSize)` x `ceil(depth / cellSize)`.
+- **WallNorth/WallSouth:** gridX maps to world X, gridY maps to world Y. Grid dimensions: `ceil(width / cellSize)` x `ceil(height / cellSize)`.
+- **WallEast/WallWest:** gridX maps to world Z, gridY maps to world Y. Grid dimensions: `ceil(depth / cellSize)` x `ceil(height / cellSize)`.
+
+`GridToWorld` returns the world-space centre of the cell. `WorldToGrid` clamps the result to valid grid bounds. `RecalculateGrids` is called by `RoomController` after `SetDimensions` succeeds — it rebuilds grid dimensions and clears occupancy data (placed objects are re-registered by `SceneSerializer` on load).
+
+Occupancy is stored as a `HashSet<Vector2Int>` per surface, keyed by `(gridX, gridY)`. `MarkOccupied` and `MarkUnoccupied` iterate over the `width x height` footprint rectangle.
+
+---
+
+### IObjectPalette
+
+```csharp
+public interface IObjectPalette
+{
+    void Populate(AssetLibraryConfig config);
+    void SetActiveEntry(string prefabId);
+    void ClearActiveEntry();
+    event Action<string> OnPrefabSelected;  // fires prefabId
+}
+```
+
+`ObjectPalette` is a new `MonoBehaviour` (UI) that reads `AssetLibraryConfig` to build a scrollable panel of prefab buttons. Each button shows the entry's `Thumbnail` sprite and `DisplayName`. Buttons are grouped by `Category`. When a button is clicked, `OnPrefabSelected` fires with the `prefabId`; the `UIBridge` (or a scene coordinator) subscribes and calls `ObjectPlacer.BeginPlacement` with the resolved prefab.
+
+---
+
+## Extended Components and Data Models
+
+### PlaceableObject Component
+
+```csharp
+[RequireComponent(typeof(MeshRenderer))]
+public class PlaceableObject : MonoBehaviour
+{
+    public List<SurfaceId> AllowedSurfaces;
+    public int GridWidth = 1;
+    public int GridHeight = 1;
+    public string PrefabId;             // matches AssetLibraryConfig key
+    public string DisplayName;
+    public Sprite Thumbnail;
+}
+```
+
+All fields are `[SerializeField]`-exposed for Unity Editor configuration. If a prefab lacks this component, `ObjectPlacer` defaults to `AllowedSurfaces = [Floor]`, `GridWidth = 1`, `GridHeight = 1`, and logs a warning (Requirement 16.4).
+
+---
+
+### Extended AssetLibraryConfig
+
+`AssetLibraryConfig` is extended to include per-entry metadata:
+
+```csharp
+[Serializable]
+public class AssetLibraryEntry
+{
+    public string PrefabId;         // unique key, e.g. "bed"
+    public string AssetPath;        // path to glTF/GLB or Prefab asset
+    public string DisplayName;      // human-readable label, e.g. "Bed"
+    public Sprite Thumbnail;        // 128x128 sprite for Object_Palette
+    public string Category;         // e.g. "Furniture", "Decoration", "Lighting"
+}
+
+// ScriptableObject
+public class AssetLibraryConfig : ScriptableObject
+{
+    public List<AssetLibraryEntry> Entries;
+}
+```
+
+The 13 starter prefabs (bed, desk, chair, wardrobe, shelves, poster, hook, guitar, window, rug, lamp, books, laptop) are pre-populated in the ScriptableObject asset at `Assets/RoomVisualizer/Config/AssetLibraryConfig.asset`. Prefab assets live under `Assets/RoomVisualizer/Prefabs/Starter/`.
+
+---
+
+### Extended PlacedObjectData
+
+```csharp
+[Serializable]
+public class PlacedObjectData
+{
+    // Existing fields (preserved for backward compatibility)
+    public string AssetPath;
+    public SerializableVector3 Position;
+    public SerializableVector3 EulerAngles;
+    public SerializableVector3 Scale;
+
+    // New fields (null/0 in original format — backward-compatible)
+    public string PrefabId;             // null in original format
+    public string SurfaceId;            // null in original format
+    public int GridX;
+    public int GridY;
+    public int RotationStep;            // 0–3
+    public Dictionary<string, string> CustomProperties;
+}
+```
+
+`SceneData.SaveFormatVersion` is bumped to `"2.0"` for files written with the extended format. The serializer detects `"1.0"` files by checking whether `PrefabId` is null and falls back to world-space placement via `CollisionSystem` (Requirement 22.5).
+
+---
+
+## Architecture Extension
+
+The following diagram shows how the new subsystems integrate with the existing architecture:
+
+```mermaid
+graph TD
+    subgraph "Extended Game Engine Core"
+        CC_EXT[CameraController\n+ IsIsometricMode\n+ YawStepIndex\n+ RotateStep\n+ ToggleIsometricMode\n+ OnYawStepChanged event]
+        WVM[WallVisibilityManager\nnew MonoBehaviour]
+        PGM[PlacementGridManager\nnew MonoBehaviour]
+        OP_EXT[ObjectPlacer\n+ IPlacementGridManager dep\n+ grid-snap logic\n+ green/red preview\n+ surface-type validation]
+        PAL[ObjectPalette\nnew MonoBehaviour UI]
+        SS_EXT[SceneSerializer\n+ extended PlacedObjectData\n+ v2.0 format\n+ backward compat]
+        ALC[AssetLibraryConfig\n+ DisplayName, Thumbnail, Category]
+    end
+
+    CC_EXT -- "OnYawStepChanged(int)" --> WVM
+    PGM --> OP_EXT
+    PGM --> SS_EXT
+    PAL -- "OnPrefabSelected(prefabId)" --> OP_EXT
+    ALC --> PAL
+    ALC --> SS_EXT
+```
+
+**Extension strategy (no breaking changes):**
+
+- `CameraController` adds `IIsometricCameraController` to its implements list and adds the new fields/methods. Existing `ICameraController` callers are unaffected.
+- `ObjectPlacer` gains an optional `IPlacementGridManager` dependency (injected via inspector or `SetDependencies`). If null, it falls back to the existing free-placement behaviour.
+- `SceneSerializer` gains an optional `IPlacementGridManager` dependency for grid re-registration on load.
+- `UIBridge.SetDependencies` is extended to accept `IPlacementGridManager` and `IObjectPalette` as optional parameters.
+
+---
+
+## New Correctness Properties (Properties 20–26)
+
+*These properties extend the existing set (Properties 1–19). Numbering continues from 20.*
+
+### Property 20: GridToWorld/WorldToGrid round-trip
+
+*For any* valid grid cell `(surfaceId, gridX, gridY)` on any surface, calling `WorldToGrid(surfaceId, GridToWorld(surfaceId, gridX, gridY))` SHALL return `(gridX, gridY)`.
+
+**Validates: Requirements 15.2, 15.3, 15.6**
+
+---
+
+### Property 21: Grid snapping always produces a cell within surface bounds
+
+*For any* world-space position on a surface and any room dimensions in [1, 50] metres, calling `WorldToGrid` SHALL return grid coordinates `(gridX, gridY)` that lie within the valid grid extent for that surface (i.e., `0 <= gridX < gridWidth` and `0 <= gridY < gridHeight`).
+
+**Validates: Requirements 15.3, 15.4**
+
+---
+
+### Property 22: Placement validation rejects surface-type mismatch
+
+*For any* prefab whose `PlaceableObject.AllowedSurfaces` does not include a given `SurfaceId`, attempting to confirm placement on that surface SHALL return `PlacementResult.Blocked` and leave `PlacedObjects.Count` unchanged.
+
+**Validates: Requirements 16.3, 19.1**
+
+---
+
+### Property 23: Placement validation rejects occupied cells
+
+*For any* grid configuration where the cells required by an object's footprint are already marked occupied, calling `ConfirmPlacement` SHALL return `PlacementResult.Blocked` and leave the occupancy state unchanged.
+
+**Validates: Requirements 19.3, 19.5, 19.6**
+
+---
+
+### Property 24: Camera yaw step is always in [0, 3] after any number of RotateStep calls
+
+*For any* starting `YawStepIndex` and any sequence of `RotateStep(+1)` and `RotateStep(-1)` calls, the resulting `YawStepIndex` SHALL always be an integer in the closed set `{0, 1, 2, 3}`.
+
+**Validates: Requirements 13.2, 13.5**
+
+---
+
+### Property 25: Wall fade does not modify material assets (only material instances)
+
+*For any* wall fade operation triggered by a yaw step change, the `sharedMaterial` asset referenced by each wall surface's `Renderer` SHALL have the same `color` value before and after the fade. Only the per-instance `material` (obtained via `renderer.material`) SHALL have its alpha channel modified.
+
+**Validates: Requirements 14.4**
+
+---
+
+### Property 26: Extended save/load round-trip preserves prefab ID, surface, grid position, rotation step
+
+*For any* valid `SceneData` using the extended format (v2.0) containing objects with non-null `PrefabId`, `SurfaceId`, `GridX`, `GridY`, `RotationStep`, and `CustomProperties`, saving to JSON and then loading from that JSON SHALL produce a `SceneData` whose extended fields are equal to those of the original for every placed object.
+
+**Validates: Requirements 22.1, 22.2, 22.4**
+
+---
+
+## Extended Error Handling
+
+The following rows extend the Error Handling table above:
+
+| Scenario | Subsystem | Behaviour |
+|---|---|---|
+| Placement attempted on disallowed surface | ObjectPlacer | Returns `PlacementResult.Blocked`; preview turns red |
+| Placement footprint extends beyond grid bounds | ObjectPlacer | Returns `PlacementResult.OutOfBounds`; preview turns red |
+| Placement footprint overlaps occupied cells | ObjectPlacer | Returns `PlacementResult.Blocked`; preview turns red |
+| Prefab missing `PlaceableObject` component | ObjectPlacer | Defaults to floor-only 1x1 footprint; logs `Debug.LogWarning` |
+| Room dimensions change while objects are placed | PlacementGridManager | `RecalculateGrids` rebuilds extents; occupancy data is cleared and must be re-registered by `SceneSerializer` on next load |
+| Wall fade called before material instance created | WallVisibilityManager | Calls `renderer.material` to force instance creation before modifying alpha |
+| Save file has unknown `PrefabId` | SceneSerializer | Skips object, adds warning to `LoadSceneResult.MissingAssets`, continues loading |
+| Save file is v1.0 format (no `PrefabId`) | SceneSerializer | Falls back to world-space placement via `CollisionSystem`; infers grid position via `WorldToGrid` |
+| `AssetLibraryConfig` entry missing `Thumbnail` | ObjectPalette | Displays a default placeholder sprite; does not throw |
+
+---
+
+## Extended Testing Strategy
+
+### New Property Tests (Properties 20–26)
+
+Each new property test follows the same conventions as Properties 1–19: `[FsCheck.NUnit.Property(MaxTest = 100)]`, tagged with a comment referencing the property number.
+
+**New custom arbitraries:**
+
+- `GridCellArb` — generates `(SurfaceId, gridX, gridY)` tuples within valid bounds for a given room size
+- `RoomDimensionsArb` — generates `(width, depth, height)` triples in [1, 50] metres
+- `PlaceableObjectArb` — generates `PlaceableObject` configs with random `AllowedSurfaces` and footprint sizes
+- `ExtendedSceneDataArb` — extends `SceneDataArb` with non-null `PrefabId`, `SurfaceId`, `GridX`, `GridY`, `RotationStep`, and `CustomProperties`
+- `YawStepSequenceArb` — generates sequences of `+1` / `-1` direction values for `RotateStep`
+
+**Property 20 test sketch:**
+
+```csharp
+// Feature: 3d-room-visualizer, Property 20: GridToWorld/WorldToGrid round-trip
+[FsCheck.NUnit.Property(MaxTest = 100)]
+public Property GridRoundTrip(GridCellArb cell)
+{
+    var mgr = new PlacementGridManager(cellSize: 0.5f, roomDims: cell.RoomDims);
+    Vector3 world = mgr.GridToWorld(cell.Surface, cell.GridX, cell.GridY);
+    Vector2Int back = mgr.WorldToGrid(cell.Surface, world);
+    return (back == new Vector2Int(cell.GridX, cell.GridY)).ToProperty();
+}
+```
+
+**Property 24 test sketch:**
+
+```csharp
+// Feature: 3d-room-visualizer, Property 24: YawStepIndex always in [0,3]
+[FsCheck.NUnit.Property(MaxTest = 100)]
+public Property YawStepAlwaysValid(YawStepSequenceArb seq)
+{
+    var cam = new CameraControllerTestDouble();
+    foreach (int dir in seq.Directions)
+        cam.RotateStep(dir);
+    return (cam.YawStepIndex >= 0 && cam.YawStepIndex <= 3).ToProperty();
+}
+```
+
+### New Unit Tests
+
+- `WallVisibilityManager`: verify correct wall pair selected for each of the 4 yaw steps
+- `PlacementGridManager`: verify `RecalculateGrids` clears occupancy and rebuilds extents
+- `ObjectPlacer`: verify green preview material on valid position, red on invalid
+- `ObjectPalette`: verify `Populate` creates one button per `AssetLibraryEntry`
+- `SceneSerializer` (v2.0): verify backward-compatible load of a v1.0 JSON fixture
+
+### New PlayMode Integration Tests
+
+- Toggle isometric mode: verify orthographic projection, fixed pitch 30 degrees, yaw locked to step
+- `RotateStep` animation: verify yaw transitions complete within 0.3 seconds
+- Wall fade: verify front-facing walls reach alpha 0.15 within 0.2 seconds after yaw step change
+- Full extended save to load cycle: place objects with grid positions, save, reload, verify grid occupancy restored
+
+### Updated Coverage Table
+
+| Area | Approach | Target |
+|---|---|---|
+| Grid round-trip | Property test (Property 20) | 100 random cells |
+| Grid snapping bounds | Property test (Property 21) | 100 random positions |
+| Surface-type validation | Property test (Property 22) | 100 random prefab/surface combos |
+| Occupied-cell rejection | Property test (Property 23) | 100 random occupancy configs |
+| Yaw step clamping | Property test (Property 24) | 100 random step sequences |
+| Wall fade material safety | Property test (Property 25) | 100 random fade operations |
+| Extended save/load round-trip | Property test (Property 26) | 100 random extended scenes |
+| Isometric mode toggle | Example + PlayMode | 2 representative states |
+| Wall visibility mapping | Example (4 cases) | All 4 yaw steps |
+| Starter prefab library | Smoke test | All 13 entries present |
