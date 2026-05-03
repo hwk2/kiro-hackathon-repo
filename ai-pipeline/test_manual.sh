@@ -43,6 +43,13 @@ curl -s -X POST "$BASE/manipulate" \
   }" | python3 -m json.tool
 
 echo ""
-echo "=== FULL TEST SUITE ==="
-cd /mnt/c/Users/Htoo/Desktop/kiro-hackathon-repo/ai-pipeline
-PYTHONPATH=src .venv/bin/python3 -m pytest tests/ -v 2>&1
+echo "=== STAGE AND COMMIT ==="
+cd /mnt/c/Users/Htoo/Desktop/kiro-hackathon-repo
+git add .kiro/hooks/xss-prevention.kiro.hook
+git add .kiro/specs/room-vision-ai/tasks.md
+git add ai-pipeline/test_manual.sh
+git add -u ai-pipeline/data/feedback/
+git status --short -- .kiro/ ai-pipeline/test_manual.sh ai-pipeline/data/ 2>&1
+git commit -m "ai-pipeline: cleanup session artifacts, restore xss hook, update tasks" 2>&1
+git push origin feature/ai-pipeline-member3 2>&1
+echo DONE
