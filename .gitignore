@@ -8,8 +8,11 @@
 # Python virtual environments
 .venv/
 venv/
-__pycache__/
 *.pyc
+
+# Python
+__pycache__/
+*.py[cod]
 
 # Node
 node_modules/
@@ -39,3 +42,21 @@ build/
 *.jks
 *.mobileprovision
 *.keystore
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Unity generated — do not commit
+unity/RoomVisualizer/[Ll]ibrary/
+unity/RoomVisualizer/[Tt]emp/
+unity/RoomVisualizer/[Oo]bj/
+unity/RoomVisualizer/[Bb]uild/
+unity/RoomVisualizer/[Bb]uilds/
+unity/RoomVisualizer/[Ll]ogs/
+unity/RoomVisualizer/[Uu]ser[Ss]ettings/
+unity/RoomVisualizer/*.csproj
+unity/RoomVisualizer/*.sln
+unity/RoomVisualizer/*.slnx
+unity/RoomVisualizer/.vs/
+unity/RoomVisualizer/Assembly-CSharp*.csproj

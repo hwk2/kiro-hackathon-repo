@@ -53,3 +53,28 @@ python src/main.py
 
 See [tasks-member2-desktop.md](../.kiro/specs/room-vision-ai/tasks-member2-desktop.md) for implementation tasks.
 See [requirements-member2-desktop.md](../.kiro/specs/room-vision-ai/requirements-member2-desktop.md) for requirements.
+
+---
+
+## Unity 3D Room Visualizer Integration
+
+The desktop app drives a separate Unity-based 3D visualizer via a local HTTP interface.
+
+**Repo**: [https://github.com/OverseerUniverse/RoomVisualizer](https://github.com/OverseerUniverse/RoomVisualizer)
+
+**How it works:**
+- The Unity app runs locally and listens on `localhost:8322`
+- After receiving a `BlockModel` from the AI Pipeline, forward it to Unity:
+  ```
+  POST http://localhost:8322/load-block-model
+  Content-Type: application/json
+  { ...BlockModel JSON... }
+  ```
+- All other scene commands (`/place-object`, `/set-surface`, `/save-scene`, etc.) follow the same pattern
+- Check Unity is running: `GET http://localhost:8322/health`
+
+**Port assignments:**
+| Service | Port |
+|---------|------|
+| AI Pipeline | `localhost:8321` |
+| Unity Visualizer | `localhost:8322` |
