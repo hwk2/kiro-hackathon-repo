@@ -1,11 +1,19 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { CapturedImage } from '../../App';
-
-const MIN_RESOLUTION = 480;
-const MIN_IMAGES = 4;
-const RECOMMENDED_IMAGES = 8;
+import {
+  MIN_RESOLUTION,
+  MIN_IMAGES,
+  RECOMMENDED_IMAGES,
+  isValidResolution,
+  isSupportedExtension,
+  calculateProgress,
+  getProgressColor,
+  needsMinimumImageWarning,
+} from '../utils/imageValidation';
 
 interface Props {
   images: CapturedImage[];
@@ -20,7 +28,7 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
     if (result.canceled || !result.assets) return;
 
     for (const asset of result.assets) {
-      if (asset.width < MIN_RESOLUTION || asset.height < MIN_RESOLUTION) {
+      if (!isValidResolution(asset.width, asset.height)) {
         Alert.alert(
           'Image Too Small',
           `Minimum resolution is ${MIN_RESOLUTION}×${MIN_RESOLUTION}px. This image is ${asset.width}×${asset.height}px.`
@@ -67,8 +75,83 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
     processResult(result);
   };
 
+  const getImageDimensions = (uri: string): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      Image.getSize(
+        uri,
+        (width, height) => resolve({ width, height }),
+        (error) => reject(error)
+      );
+    });
+  };
+
+  const pickFromFiles = async () => {
+    const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: SUPPORTED_MIME_TYPES,
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+      for (const asset of result.assets) {
+        const ext = (asset.name || '').split('.').pop()?.toLowerCase();
+        if (ext && !isSupportedExtension(asset.name || '')) {
+          Alert.alert('Unsupported Format', `"${asset.name}" is not a supported image format. Use JPEG, PNG, or HEIC.`);
+          continue;
+        }
+
+        // Get image dimensions since DocumentPicker doesn't provide them
+        let width: number;
+        let height: number;
+        try {
+          const dims = await getImageDimensions(asset.uri);
+          width = dims.width;
+          height = dims.height;
+        } catch {
+          Alert.alert('Cannot Read Image', `Unable to read dimensions for "${asset.name}". The file may be corrupted.`);
+          continue;
+        }
+
+        if (!isValidResolution(width, height)) {
+          Alert.alert(
+            'Image Too Small',
+            `Minimum resolution is ${MIN_RESOLUTION}×${MIN_RESOLUTION}px. "${asset.name}" is ${width}×${height}px.`
+          );
+          continue;
+        }
+
+        // Get file info for size
+        let fileSize: number | undefined;
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+          if (fileInfo.exists && 'size' in fileInfo) {
+            fileSize = fileInfo.size;
+          }
+        } catch {
+          // File size is optional metadata — continue without it
+        }
+
+        const img: CapturedImage = {
+          uri: asset.uri,
+          width,
+          height,
+          fileName: asset.name || `file_import_${Date.now()}.jpg`,
+          fileSize: fileSize ?? asset.size,
+          capturedAt: new Date().toISOString(),
+        };
+        onAddImage(img);
+      }
+    } catch {
+      Alert.alert('Import Failed', 'Could not open the file picker. Please try again.');
+    }
+  };
+
   const handleDone = () => {
-    if (images.length < MIN_IMAGES) {
+    if (needsMinimumImageWarning(images.length)) {
       Alert.alert(
         'Not Enough Images',
         `You have ${images.length} image(s). We recommend at least ${MIN_IMAGES} for a basic model and ${RECOMMENDED_IMAGES}+ for best results. Continue anyway?`,
@@ -82,8 +165,8 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
     }
   };
 
-  const progress = Math.min(images.length / RECOMMENDED_IMAGES, 1);
-  const progressColor = images.length >= RECOMMENDED_IMAGES ? '#44aa44' : images.length >= MIN_IMAGES ? '#7c8aff' : '#cc8800';
+  const progress = calculateProgress(images.length);
+  const progressColor = getProgressColor(images.length);
 
   return (
     <View style={styles.container}>
@@ -101,7 +184,7 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: progressColor }]} />
         </View>
-        {images.length < MIN_IMAGES && (
+        {needsMinimumImageWarning(images.length) && (
           <Text style={styles.warningText}>⚠️ Minimum {MIN_IMAGES} images needed</Text>
         )}
         {images.length >= RECOMMENDED_IMAGES && (
@@ -119,6 +202,11 @@ export default function CaptureScreen({ images, onAddImage, onDone, onBack }: Pr
         <TouchableOpacity style={styles.captureBtn} onPress={pickFromGallery}>
           <Text style={styles.captureBtnEmoji}>🖼️</Text>
           <Text style={styles.captureBtnText}>From Gallery</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.captureBtn} onPress={pickFromFiles}>
+          <Text style={styles.captureBtnEmoji}>📁</Text>
+          <Text style={styles.captureBtnText}>From Files</Text>
         </TouchableOpacity>
       </View>
 
