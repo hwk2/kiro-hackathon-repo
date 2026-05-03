@@ -1,0 +1,17 @@
+{
+    "name": "RoomVisualizer",
+    "rootNamespace": "RoomVisualizer",
+    "references": [
+        "Unity.Cloud.Gltfast",
+        "Newtonsoft.Json"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

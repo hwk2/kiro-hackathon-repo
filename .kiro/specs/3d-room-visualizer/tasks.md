@@ -216,7 +216,7 @@ Implement the Unity (C#) game-engine mechanics for the 3D Room Visualizer in dis
     - Full save → load cycle with a real JSON file on disk; verify scene state matches
 
 - [ ] 12. Implement UIBridge and wire all subsystems
-  - [ ] 12.1 Implement `UIBridge` MonoBehaviour
+  - [x] 12.1 Implement `UIBridge` MonoBehaviour
     - Expose all ten public methods: `LoadAsset`, `PlaceObject`, `MoveObject`, `RotateObject`, `RemoveObject`, `SetSurfaceMaterial`, `SetLightingParameter`, `SaveScene`, `LoadScene`, `LoadBlockModel`
     - Inject all subsystem dependencies (`IRoomController`, `IAssetLoader`, `IObjectPlacer`, `ICameraController`, `ISurfaceManager`, `ILightingManager`, `ISceneSerializer`, `IBlockModelImporter`)
     - Raise `OnOperationComplete` event exactly once per method call with a non-null `OperationResult` carrying a non-null `OperationName`, for both success and failure paths
@@ -232,7 +232,7 @@ Implement the Unity (C#) game-engine mechanics for the 3D Room Visualizer in dis
     - Test stub compiles and all ten methods are invocable without throwing
     - Test `OnOperationComplete` carries `Success=false` and a non-null message when a subsystem returns an error
 
-  - [ ] 12.4 Wire all subsystems in a Unity scene
+  - [-] 12.4 Wire all subsystems in a Unity scene
     - Create a root `RoomVisualizerBootstrapper` MonoBehaviour that instantiates and injects all subsystem dependencies into `UIBridge`
     - Verify the scene compiles and runs with stub implementations of all subsystems
     - _Requirements: 8.3_
