@@ -1,0 +1,8 @@
+{
+  "agent_type": "ollama",
+  "model_name": "llava:7b",
+  "endpoint": "http://localhost:11434",
+  "api_key": null,
+  "timeout_seconds": 300,
+  "max_retries": 2
+}

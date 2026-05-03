@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PluginManifest",
+  "description": "Schema for Room Vision AI plugin manifest files. Each plugin must provide a manifest.json in its directory under plugins/installed/.",
+  "type": "object",
+  "required": ["plugin_id", "name", "version", "author"],
+  "properties": {
+    "plugin_id": {
+      "type": "string",
+      "description": "Unique identifier for the plugin (kebab-case recommended)."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable plugin name."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version string (e.g. 1.0.0)."
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author name or organisation."
+    },
+    "categories": {
+      "type": "array",
+      "description": "Object categories contributed by this plugin.",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "safety_tags": { "type": "array", "items": { "type": "string" }, "default": [] },
+          "source": { "type": "string", "default": "plugin" }
+        }
+      },
+      "default": []
+    },
+    "rules": {
+      "type": "array",
+      "description": "Manipulation rules contributed by this plugin.",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "applies_to": { "type": "array", "items": { "type": "string" }, "default": [] },
+          "target_categories": { "type": "array", "items": { "type": "string" }, "default": [] },
+          "source": { "type": "string", "default": "plugin" }
+        }
+      },
+      "default": []
+    },
+    "prompt_types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "agent_config": {
+      "oneOf": [
+        { "type": "object" },
+        { "type": "null" }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,30 @@
+{
+  "feedback_id": "320561bb-6a97-4efe-bba5-3c5817f17f5c",
+  "session_id": "b7d6e721-8950-43d8-a221-805aa0eba291",
+  "created_at": "2026-05-03T02:14:14.539000Z",
+  "prompt": "Make this room safer for a toddler",
+  "original_block_model_id": "887d91b0-4138-456f-bcc6-3434803ebadd",
+  "response_options": [
+    {
+      "option_index": 0,
+      "description": "Added outlet covers.",
+      "rules_applied": [
+        "cover_outlets"
+      ],
+      "block_model": {
+        "model_id": "887d91b0-4138-456f-bcc6-3434803ebadd",
+        "created_at": "2026-05-03T02:14:14.538987Z",
+        "room_dimensions": {
+          "width": 5.0,
+          "height": 2.8,
+          "depth": 4.0,
+          "unit": "meters"
+        },
+        "blocks": [],
+        "version": "1.0"
+      }
+    }
+  ],
+  "selected_option_index": 0,
+  "dismissed": false
+}
