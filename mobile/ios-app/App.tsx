@@ -27,6 +27,7 @@ export default function App() {
   const [guideDismissed, setGuideDismissed] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<DiscoveredDevice | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>(INITIAL_CONNECTION_STATE);
+  const [returnAfterPairing, setReturnAfterPairing] = useState<Screen>('home');
 
   useEffect(() => {
     AsyncStorage.getItem(CAPTURE_GUIDE_DISMISSED_KEY)
@@ -64,8 +65,9 @@ export default function App() {
 
   const handleDeviceSelected = useCallback((device: DiscoveredDevice) => {
     setSelectedDevice(device);
-    setScreen('home');
-  }, []);
+    setScreen(returnAfterPairing);
+    setReturnAfterPairing('home');
+  }, [returnAfterPairing]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,7 +77,10 @@ export default function App() {
           imageCount={images.length}
           onStartCapture={handleStartCapture}
           onViewImages={() => setScreen('review')}
-          onPairDesktop={() => setScreen('pairing')}
+          onPairDesktop={() => {
+            setReturnAfterPairing('home');
+            setScreen('pairing');
+          }}
           connectionState={connectionState}
         />
       )}
@@ -101,7 +106,10 @@ export default function App() {
           onAddMore={() => setScreen('capture')}
           onBack={() => setScreen('home')}
           isPaired={selectedDevice !== null}
-          onPairDesktop={() => setScreen('pairing')}
+          onPairDesktop={() => {
+            setReturnAfterPairing('review');
+            setScreen('pairing');
+          }}
         />
       )}
       {screen === 'pairing' && (
