@@ -209,6 +209,39 @@ namespace RoomVisualizer
         }
 
         /// <summary>
+        /// Places an already-instantiated <paramref name="go"/> at <paramref name="position"/>
+        /// without calling Instantiate. Used by BlockModelImporter which creates GameObjects
+        /// itself before handing them to the placer.
+        /// </summary>
+        public PlacementResult PlaceDirect(GameObject go, Vector3 position)
+        {
+            IsColliding = false;
+
+            if (go == null)
+            {
+                Debug.LogWarning("[ObjectPlacer] PlaceDirect called with a null GameObject.");
+                return PlacementResult.Blocked;
+            }
+
+            Bounds objectBounds = ComputeLocalBounds(go);
+            float snappedY = objectBounds.extents.y - objectBounds.center.y;
+            Vector3 placementPosition = new Vector3(position.x, snappedY, position.z);
+
+            if (_collisionSystem != null && !_collisionSystem.IsWithinRoomBounds(objectBounds, placementPosition))
+                return PlacementResult.OutOfBounds;
+
+            if (_collisionSystem != null && _collisionSystem.WouldCollide(objectBounds, placementPosition))
+            {
+                IsColliding = true;
+                return PlacementResult.Blocked;
+            }
+
+            go.transform.position = placementPosition;
+            _placedObjects.Add(go);
+            return PlacementResult.Success;
+        }
+
+        /// <summary>
         /// Selects <paramref name="obj"/>, applying a highlight effect and setting
         /// <see cref="HasSelection"/> to <c>true</c>.
         /// </summary>

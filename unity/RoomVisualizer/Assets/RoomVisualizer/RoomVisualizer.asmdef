@@ -2,7 +2,7 @@
     "name": "RoomVisualizer",
     "rootNamespace": "RoomVisualizer",
     "references": [
-        "Unity.Cloud.Gltfast",
+        "glTFast",
         "Newtonsoft.Json"
     ],
     "includePlatforms": [],

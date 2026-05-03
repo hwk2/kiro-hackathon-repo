@@ -13,7 +13,7 @@ namespace RoomVisualizer
     ///
     /// Requirements: 8.1, 8.2, 8.3
     /// </summary>
-    public class UIBridge : MonoBehaviour
+    public class UIBridge : MonoBehaviour, IUIBridge
     {
         // ── Inspector-injected subsystem references ──────────────────────────
 
@@ -106,6 +106,34 @@ namespace RoomVisualizer
             _iCameraController = _cameraController;
             _iSurfaceManager   = _surfaceManager;
             _iLightingManager  = _lightingManager;
+        }
+
+        /// <summary>
+        /// Injects all subsystem interface references programmatically (interface-typed overload).
+        /// Used by tests and the bootstrapper when concrete MonoBehaviour references are not available.
+        /// Parameters: roomController, assetLoader, objectPlacer, cameraController,
+        ///             surfaceManager, lightingManager, sceneSerializer, blockModelImporter.
+        /// Any parameter may be null.
+        /// </summary>
+        public void SetDependencies(
+            IRoomController roomController,
+            IAssetLoader assetLoader,
+            IObjectPlacer objectPlacer,
+            ICameraController cameraController,
+            ISurfaceManager surfaceManager,
+            ILightingManager lightingManager,
+            ISceneSerializer sceneSerializer,
+            IBlockModelImporter blockModelImporter)
+        {
+            _iRoomController      = roomController;
+            _iAssetLoader         = assetLoader;
+            _iObjectPlacer        = objectPlacer;
+            _iCameraController    = cameraController;
+            _iSurfaceManager      = surfaceManager;
+            _iLightingManager     = lightingManager;
+            if (sceneSerializer != null)
+                _sceneSerializer  = sceneSerializer;
+            _iBlockModelImporter  = blockModelImporter;
         }
 
         // ── Unity lifecycle ──────────────────────────────────────────────────

@@ -232,13 +232,13 @@ Implement the Unity (C#) game-engine mechanics for the 3D Room Visualizer in dis
     - Test stub compiles and all ten methods are invocable without throwing
     - Test `OnOperationComplete` carries `Success=false` and a non-null message when a subsystem returns an error
 
-  - [-] 12.4 Wire all subsystems in a Unity scene
+  - [x] 12.4 Wire all subsystems in a Unity scene
     - Create a root `RoomVisualizerBootstrapper` MonoBehaviour that instantiates and injects all subsystem dependencies into `UIBridge`
     - Verify the scene compiles and runs with stub implementations of all subsystems
     - _Requirements: 8.3_
 
 - [ ] 13. Implement BlockModelImporter
-  - [ ] 13.1 Implement `BlockModelImporter` MonoBehaviour
+  - [x] 13.1 Implement `BlockModelImporter` MonoBehaviour
     - Deserialise incoming JSON string to `BlockModelData` using `Newtonsoft.Json`; return `ImportResult{Success=false}` on parse or schema error
     - Call `IRoomController.SetDimensions` from `blockModel.room_dimensions` (width, depth, height in metres)
     - For each block, look up `block.category` in `AssetLibraryConfig`; if found, call `IAssetLoader.LoadGltfAsync` with the mapped path; if not found, instantiate a default box primitive scaled to `block.dimensions` and add a warning to `ImportResult.Warnings`
@@ -259,7 +259,7 @@ Implement the Unity (C#) game-engine mechanics for the 3D Room Visualizer in dis
     - Test `room_dimensions` outside [1, 50] range are clamped and a warning is logged
 
 - [ ] 14. Implement HttpListenerService
-  - [ ] 14.1 Implement `HttpListenerService` MonoBehaviour
+  - [x] 14.1 Implement `HttpListenerService` MonoBehaviour
     - Start `System.Net.HttpListener` on `localhost:8322` in `Awake()` on a background thread
     - Implement a `ConcurrentQueue<Action>` drained in `Update()` to marshal Unity API calls to the main thread
     - Route `GET /health` → return `{"status":"ok","version":"1.0"}` immediately (no main-thread dispatch needed)
@@ -282,7 +282,7 @@ Implement the Unity (C#) game-engine mechanics for the 3D Room Visualizer in dis
   - [ ]* 14.4 Write PlayMode integration test for HttpListenerService
     - Start the listener in a live scene; send `POST /load-block-model` with a sample `BlockModel` JSON; verify blocks appear in the scene and response is `Success=true`
 
-- [ ] 15. Final checkpoint — Ensure all tests pass
+- [x] 15. Final checkpoint — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
