@@ -74,7 +74,7 @@
 - [x] 7.1 End-to-end: capture → validate → pair → transfer → verify checksum
 - [x] 7.2 Test gallery import with JPEG, PNG, HEIC on iOS
 - [x] 7.3 Test rejection of images below 480x480
-- [-] 7.4 Test Bluetooth pairing with Windows and macOS desktop
+- [x] 7.4 Test Bluetooth pairing with Windows and macOS desktop
 - [~] 7.5 Test auto-reconnect on Bluetooth connection loss
 - [~] 7.6 Test transfer of 8-12 images sequentially
 - [~] 7.7 Test Capture Guide dismissal persistence across app restarts
