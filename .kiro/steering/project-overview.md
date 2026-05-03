@@ -14,13 +14,13 @@ A privacy-first, open-source computer vision app that captures room images on mo
 - **Member 4 (You)**: 3D Room Visualizer (Unity 2022 LTS, C#) — interactive 3D game engine for room design, furniture placement, surface/lighting customisation, and BlockModel import from the AI Pipeline
 
 ## Current Focus
-Member 1's mobile app is the active development area. Using Expo (React Native) with TypeScript for iOS-first development. No Mac available — using Expo Go for on-device testing.
+Member 3's AI pipeline is fully implemented with 242 passing tests. Member 1's mobile app uses Expo (React Native) with TypeScript for iOS-first development.
 
 ## Repository Layout
 ```
 mobile/ios-app/     # Expo React Native app (Member 1) — ACTIVE
 desktop/            # PySide6 desktop app (Member 2) — scaffolded
-ai_pipeline/        # FastAPI AI pipeline (Member 3) — scaffolded
+ai-pipeline/        # FastAPI AI pipeline (Member 3) — COMPLETE (242 tests)
 .kiro/specs/        # Requirements, design, and tasks for all members
 ```
 

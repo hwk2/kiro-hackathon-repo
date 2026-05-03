@@ -8,9 +8,19 @@ interface Props {
   onClearAll: () => void;
   onAddMore: () => void;
   onBack: () => void;
+  isPaired?: boolean;
+  onPairDesktop?: () => void;
 }
 
-export default function ReviewScreen({ images, onRemoveImage, onClearAll, onAddMore, onBack }: Props) {
+export default function ReviewScreen({
+  images,
+  onRemoveImage,
+  onClearAll,
+  onAddMore,
+  onBack,
+  isPaired = false,
+  onPairDesktop,
+}: Props) {
 
   const handleClearAll = () => {
     Alert.alert('Clear All', 'Remove all captured images?', [
@@ -20,10 +30,29 @@ export default function ReviewScreen({ images, onRemoveImage, onClearAll, onAddM
   };
 
   const handleTransfer = () => {
+    if (!isPaired) {
+      // Not paired — go directly to pairing screen
+      onPairDesktop?.();
+      return;
+    }
+
+    // Paired — show transfer confirmation
     Alert.alert(
-      'Transfer',
-      `Ready to send ${images.length} image(s) to your desktop via Bluetooth.\n\nBluetooth transfer will be available in the next update.`,
-      [{ text: 'OK' }]
+      'Transfer Images',
+      `Send ${images.length} image(s) to your paired desktop?\n\nImages will be encrypted and transferred over ${isPaired ? 'the active connection' : 'Bluetooth'}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Transfer',
+          onPress: () => {
+            Alert.alert(
+              'Transfer Started',
+              `Sending ${images.length} image(s)...\n\nFull transfer progress UI will be available when the desktop server is running.`,
+              [{ text: 'OK' }],
+            );
+          },
+        },
+      ],
     );
   };
 

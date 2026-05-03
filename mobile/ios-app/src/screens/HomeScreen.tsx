@@ -1,15 +1,22 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import ConnectionStatusBar from '../components/ConnectionStatusBar';
+import type { ConnectionState } from '../utils/bleConnectionManager';
 
 interface Props {
   imageCount: number;
   onStartCapture: () => void;
   onViewImages: () => void;
+  onPairDesktop: () => void;
+  connectionState?: ConnectionState;
 }
 
-export default function HomeScreen({ imageCount, onStartCapture, onViewImages }: Props) {
+export default function HomeScreen({ imageCount, onStartCapture, onViewImages, onPairDesktop, connectionState }: Props) {
   return (
     <View style={styles.container}>
+      {connectionState && (
+        <ConnectionStatusBar connectionState={connectionState} onPress={onPairDesktop} />
+      )}
       <Text style={styles.emoji}>📸</Text>
       <Text style={styles.title}>Room Vision AI</Text>
       <Text style={styles.subtitle}>
@@ -29,6 +36,10 @@ export default function HomeScreen({ imageCount, onStartCapture, onViewImages }:
         </TouchableOpacity>
       )}
 
+      <TouchableOpacity style={styles.pairBtn} onPress={onPairDesktop}>
+        <Text style={styles.pairBtnText}>📡 Pair Desktop</Text>
+      </TouchableOpacity>
+
       <Text style={styles.footer}>
         All images stay on your device.{'\n'}
         No accounts. No cloud. Just Bluetooth.
@@ -46,5 +57,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   secondaryBtn: { backgroundColor: '#1a1a2e', paddingVertical: 14, paddingHorizontal: 48, borderRadius: 12, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: '#333' },
   secondaryBtnText: { color: '#7c8aff', fontSize: 15, fontWeight: '600' },
+  pairBtn: { backgroundColor: '#1a1a2e', paddingVertical: 14, paddingHorizontal: 48, borderRadius: 12, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: '#333', marginTop: 12 },
+  pairBtnText: { color: '#7c8aff', fontSize: 15, fontWeight: '600' },
   footer: { position: 'absolute', bottom: 30, textAlign: 'center', color: '#555', fontSize: 12, lineHeight: 18 },
 });

@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "AI Pipeline Post-Edit Check",
+  "description": "After editing any AI pipeline Python file, reminds the agent to run tests with python3 and update steering/README if structure changed.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "ai-pipeline/src/**/*.py",
+      "ai-pipeline/tests/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "An AI pipeline Python file was just edited. Run the test suite: cd ai-pipeline && PYTHONPATH=src .venv/bin/python3 -m pytest tests/ -v --tb=short. If tests fail, fix them. If you added new modules or changed the project structure, update ai-pipeline/README.md and .kiro/steering/ai-pipeline-development.md accordingly."
+  },
+  "workspaceFolderName": "kiro-hackathon-repo",
+  "shortName": "ai-pipeline-lint"
+}

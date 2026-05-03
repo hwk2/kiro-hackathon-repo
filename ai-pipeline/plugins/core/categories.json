@@ -1,0 +1,20 @@
+{
+  "categories": [
+    {"id": "light_fixture", "label": "Light Fixture", "safety_tags": ["electrical"], "source": "core"},
+    {"id": "wall_fixture", "label": "Wall Fixture", "safety_tags": ["structural"], "source": "core"},
+    {"id": "power_outlet", "label": "Power Outlet", "safety_tags": ["child_hazard", "electrical"], "source": "core"},
+    {"id": "light_switch", "label": "Light Switch", "safety_tags": ["electrical"], "source": "core"},
+    {"id": "stairs", "label": "Stairs", "safety_tags": ["fall_hazard", "child_hazard", "elderly_hazard"], "source": "core"},
+    {"id": "handrail", "label": "Handrail", "safety_tags": ["safety_feature"], "source": "core"},
+    {"id": "door_handle", "label": "Door Handle", "safety_tags": ["accessibility"], "source": "core"},
+    {"id": "door", "label": "Door", "safety_tags": ["structural"], "source": "core"},
+    {"id": "window", "label": "Window", "safety_tags": ["fall_hazard", "child_hazard"], "source": "core"},
+    {"id": "window_lock", "label": "Window Lock", "safety_tags": ["child_safety"], "source": "core"},
+    {"id": "furniture", "label": "Furniture", "safety_tags": ["tip_hazard"], "source": "core"},
+    {"id": "rug", "label": "Rug", "safety_tags": ["trip_hazard"], "source": "core"},
+    {"id": "cord_cable", "label": "Cord/Cable", "safety_tags": ["trip_hazard", "child_hazard"], "source": "core"},
+    {"id": "smoke_detector", "label": "Smoke Detector", "safety_tags": ["fire_safety"], "source": "core"},
+    {"id": "fire_extinguisher", "label": "Fire Extinguisher", "safety_tags": ["fire_safety"], "source": "core"},
+    {"id": "sharp_edge_furniture", "label": "Sharp-Edged Furniture", "safety_tags": ["child_hazard", "injury_hazard"], "source": "core"}
+  ]
+}

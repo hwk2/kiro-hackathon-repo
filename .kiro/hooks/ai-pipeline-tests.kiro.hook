@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "AI Pipeline Pre-Push Tests",
+  "description": "Runs the AI pipeline test suite with python3 before pushing to ensure nothing is broken. Triggered manually before git push.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd ai-pipeline && PYTHONPATH=src .venv/bin/python3 -m pytest tests/ -v --tb=short"
+  }
+}
