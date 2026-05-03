@@ -20,23 +20,23 @@ import { CAPTURE_GUIDE_DISMISSED_KEY } from '../../screens/CaptureGuideScreen';
 // Mock AsyncStorage with an in-memory store
 // ---------------------------------------------------------------------------
 
-let store: Record<string, string> = {};
+let mockStore: Record<string, string> = {};
 
 jest.mock('@react-native-async-storage/async-storage', () => {
   return {
     __esModule: true,
     default: {
       setItem: jest.fn(async (key: string, value: string) => {
-        store[key] = value;
+        mockStore[key] = value;
       }),
       getItem: jest.fn(async (key: string) => {
-        return store[key] ?? null;
+        return mockStore[key] ?? null;
       }),
       removeItem: jest.fn(async (key: string) => {
-        delete store[key];
+        delete mockStore[key];
       }),
       clear: jest.fn(async () => {
-        store = {};
+        mockStore = {};
       }),
     },
   };
@@ -72,7 +72,7 @@ const App = require('../../../App').default;
 // ---------------------------------------------------------------------------
 
 function clearStore() {
-  store = {};
+  mockStore = {};
   (AsyncStorage.setItem as jest.Mock).mockClear();
   (AsyncStorage.getItem as jest.Mock).mockClear();
   (AsyncStorage.removeItem as jest.Mock).mockClear();
@@ -110,7 +110,7 @@ describe('Capture Guide dismissal persistence', () => {
         CAPTURE_GUIDE_DISMISSED_KEY,
         'true',
       );
-      expect(store[CAPTURE_GUIDE_DISMISSED_KEY]).toBe('true');
+      expect(mockStore[CAPTURE_GUIDE_DISMISSED_KEY]).toBe('true');
       expect(onContinue).toHaveBeenCalledTimes(1);
     });
 
@@ -126,7 +126,7 @@ describe('Capture Guide dismissal persistence', () => {
       });
 
       expect(AsyncStorage.setItem).not.toHaveBeenCalled();
-      expect(store[CAPTURE_GUIDE_DISMISSED_KEY]).toBeUndefined();
+      expect(mockStore[CAPTURE_GUIDE_DISMISSED_KEY]).toBeUndefined();
       expect(onContinue).toHaveBeenCalledTimes(1);
     });
 
@@ -144,7 +144,7 @@ describe('Capture Guide dismissal persistence', () => {
         fireEvent.press(getByText('Got it — Start Capturing'));
       });
 
-      expect(store[CAPTURE_GUIDE_DISMISSED_KEY]).toBe('true');
+      expect(mockStore[CAPTURE_GUIDE_DISMISSED_KEY]).toBe('true');
       unmount();
 
       // Step 2: Simulate app restart — render App, which reads AsyncStorage on mount

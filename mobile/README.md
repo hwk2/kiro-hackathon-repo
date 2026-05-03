@@ -26,7 +26,9 @@ Cross-platform mobile app for capturing room images and transferring them to the
 - ✅ Auto-retry on checksum mismatch (up to 2 retries per image)
 - ✅ Transfer failure notification with manual retry option
 - ✅ Protocol version validation with error response
-- 🔲 Integration testing (Section 7 — next milestone)
+- ✅ Integration tests: end-to-end pipeline, gallery formats, resolution rejection
+- ✅ Integration tests: Bluetooth pairing (Windows + macOS), auto-reconnect, batch transfer
+- ✅ Integration tests: capture guide dismissal persistence, data privacy verification
 - 🔲 Android-specific testing (iOS-first approach)
 
 ## Tech Stack
