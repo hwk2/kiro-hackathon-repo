@@ -1,3 +1,5 @@
+*note: This was a project built for the 2026 Kiro Ai Hackathon at Cal Poly San Luis Obispo. The main objective was to build a practical AI workflow. Much off this project here is incomplete but is free to use if anyone is interested in expanding on our idea. 
+
 # Room Vision AI
 
 A privacy-first, open-source computer vision system that captures room images on mobile, transfers them over encrypted Bluetooth to a desktop, and generates interactive 3D models with AI-powered room manipulation.
